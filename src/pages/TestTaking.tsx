@@ -10,6 +10,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Progress } from '@/components/ui/progress';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { ChevronLeft, ChevronRight, AlertCircle, Loader } from 'lucide-react';
+
+const STORAGE_KEY_PREFIX = 'exam_pro_test_';
 
 const TestTaking = () => {
   const { testId } = useParams<{ testId: string }>();
@@ -20,16 +24,49 @@ const TestTaking = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0); // in seconds
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(Date.now());
+  const [hasError, setHasError] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Initialize test and load any saved progress
   useEffect(() => {
     const startTest = async () => {
       if (!testId || !user) return;
       
       try {
         setIsLoading(true);
+        setHasError(false);
+        
+        // Check for existing test in progress
+        const savedData = localStorage.getItem(`${STORAGE_KEY_PREFIX}${testId}_${user.id}`);
+        
+        if (savedData) {
+          try {
+            const { attemptId: savedAttemptId, answers: savedAnswers, timeLeft: savedTimeLeft, questions: savedQuestions } = JSON.parse(savedData);
+            
+            if (savedAttemptId && savedAnswers && savedTimeLeft && savedQuestions) {
+              setAttemptId(savedAttemptId);
+              setAnswers(savedAnswers);
+              setTimeLeft(savedTimeLeft);
+              setQuestions(savedQuestions);
+              toast({
+                title: "Test Resumed",
+                description: "Your previous progress has been restored.",
+              });
+              setIsLoading(false);
+              return;
+            }
+          } catch (e) {
+            // If there's an error parsing the saved data, continue with starting a new test
+            console.error("Error parsing saved test data:", e);
+            localStorage.removeItem(`${STORAGE_KEY_PREFIX}${testId}_${user.id}`);
+          }
+        }
+        
+        // Start a new test if no valid saved data exists
         const { attempt, questions } = await startTestAttemptApi(testId, user.id);
         setAttemptId(attempt.id);
         setQuestions(questions);
@@ -41,9 +78,14 @@ const TestTaking = () => {
         });
         setAnswers(initialAnswers);
         
-        // Set timer
-        const test = await startTestAttemptApi(testId, user.id);
-        setTimeLeft(test.attempt.totalQuestions > 0 ? test.attempt.totalQuestions * 60 : 1800); // Default 30 mins if no questions
+        // Set timer based on test duration
+        const timeInSeconds = attempt.totalQuestions > 0 ? attempt.totalQuestions * 60 : 1800; // Default 30 mins if no questions
+        setTimeLeft(timeInSeconds);
+        setLastSyncTime(Date.now());
+        
+        // Save initial test state
+        saveTestProgress(attempt.id, initialAnswers, timeInSeconds, questions);
+        
       } catch (error) {
         console.error('Failed to start test:', error);
         toast({
@@ -51,6 +93,7 @@ const TestTaking = () => {
           title: "Error",
           description: "Failed to start the test. Please try again.",
         });
+        setHasError(true);
         navigate(`/tests/${testId}`);
       } finally {
         setIsLoading(false);
@@ -60,24 +103,79 @@ const TestTaking = () => {
     startTest();
   }, [testId, user, toast, navigate]);
 
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      handleSubmit();
-      return;
+  // Save test progress to localStorage
+  const saveTestProgress = (
+    currentAttemptId: string, 
+    currentAnswers: Record<string, number | null>,
+    currentTimeLeft: number,
+    currentQuestions: Question[]
+  ) => {
+    if (!testId || !user) return;
+    
+    try {
+      localStorage.setItem(
+        `${STORAGE_KEY_PREFIX}${testId}_${user.id}`, 
+        JSON.stringify({
+          attemptId: currentAttemptId,
+          answers: currentAnswers,
+          timeLeft: currentTimeLeft,
+          questions: currentQuestions,
+          lastSaved: Date.now(),
+        })
+      );
+    } catch (e) {
+      console.error("Error saving test progress:", e);
     }
+  };
 
-    const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
+  // Timer and auto-save functionality
+  useEffect(() => {
+    if (isLoading || !attemptId || timeLeft <= 0) return;
+    
+    const timerId = setInterval(() => {
+      setTimeLeft(prev => {
+        const newTimeLeft = prev - 1;
+        
+        // Time's up
+        if (newTimeLeft <= 0) {
+          clearInterval(timerId);
+          handleSubmit();
+          return 0;
+        }
+        
+        // Save progress every minute
+        if (newTimeLeft % 60 === 0) {
+          saveTestProgress(attemptId, answers, newTimeLeft, questions);
+        }
+        
+        // Adjust time if drift detected (every 5 minutes)
+        const now = Date.now();
+        if (now - lastSyncTime > 5 * 60 * 1000) {
+          setLastSyncTime(now);
+          saveTestProgress(attemptId, answers, newTimeLeft, questions);
+        }
+        
+        return newTimeLeft;
+      });
     }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeLeft]);
+    
+    return () => clearInterval(timerId);
+  }, [timeLeft, isLoading, attemptId, answers, questions, lastSyncTime]);
 
   const handleAnswerSelect = (questionId: string, selectedOption: number) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: selectedOption,
-    }));
+    setAnswers(prev => {
+      const updatedAnswers = {
+        ...prev,
+        [questionId]: selectedOption,
+      };
+      
+      // Save progress immediately when an answer changes
+      if (attemptId) {
+        saveTestProgress(attemptId, updatedAnswers, timeLeft, questions);
+      }
+      
+      return updatedAnswers;
+    });
   };
 
   const goToQuestion = (index: number) => {
@@ -96,6 +194,15 @@ const TestTaking = () => {
     }
   };
 
+  const confirmSubmit = () => {
+    const unansweredCount = Object.values(answers).filter(a => a === null).length;
+    if (unansweredCount > 0) {
+      setShowConfirmDialog(true);
+    } else {
+      handleSubmit();
+    }
+  };
+
   const handleSubmit = async () => {
     if (!attemptId) return;
     
@@ -104,21 +211,26 @@ const TestTaking = () => {
       
       const formattedAnswers: Answer[] = Object.entries(answers).map(([questionId, selectedOption]) => {
         const question = questions.find(q => q.id === questionId);
-        const isCorrect = selectedOption === question?.correctOption;
+        const isCorrect = selectedOption !== null && question ? selectedOption === question.correctOption : false;
         
         return {
           questionId,
-          selectedOption: selectedOption ?? -1,
-          isCorrect: selectedOption !== null ? isCorrect : false,
+          selectedOption: selectedOption !== null ? selectedOption : -1,
+          isCorrect: isCorrect,
         };
       });
       
-      const result = await submitTestAttemptApi(attemptId, formattedAnswers);
+      await submitTestAttemptApi(attemptId, formattedAnswers);
       
       toast({
         title: "Test Submitted",
         description: "Your test has been submitted successfully!",
       });
+      
+      // Clear saved test data
+      if (testId && user) {
+        localStorage.removeItem(`${STORAGE_KEY_PREFIX}${testId}_${user.id}`);
+      }
       
       navigate(`/results/${attemptId}`);
     } catch (error) {
@@ -143,11 +255,26 @@ const TestTaking = () => {
   const currentQuestion = questions[currentQuestionIndex];
   const answeredCount = Object.values(answers).filter(a => a !== null).length;
   const progressPercentage = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
+  const unansweredCount = Object.values(answers).filter(a => a === null).length;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <Loader className="animate-spin h-10 w-10 text-exam-blue mb-4" />
         <p className="text-xl">Loading test...</p>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
+        <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Unable to load test</h2>
+        <p className="mb-4">There was a problem starting your test. Please try again later.</p>
+        <Button onClick={() => navigate(`/tests/${testId}`)}>
+          Back to Test Details
+        </Button>
       </div>
     );
   }
@@ -155,17 +282,18 @@ const TestTaking = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="container mx-auto p-4 flex justify-between items-center">
+        <div className="container mx-auto p-4 flex flex-wrap md:flex-nowrap justify-between items-center gap-2">
           <div className="text-lg font-semibold">Question {currentQuestionIndex + 1} of {questions.length}</div>
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4">
             <div className="p-2 bg-exam-blue bg-opacity-10 rounded-md text-exam-blue font-medium">
               Time Left: {formatTime(timeLeft)}
             </div>
             <Button 
               variant="outline" 
-              onClick={handleSubmit} 
+              onClick={confirmSubmit} 
               disabled={isSubmitting || Object.values(answers).every(a => a === null)}
             >
+              {isSubmitting ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isSubmitting ? 'Submitting...' : 'Submit Test'}
             </Button>
           </div>
@@ -180,9 +308,9 @@ const TestTaking = () => {
         </div>
       </div>
       
-      <div className="container mx-auto py-8 px-4 grid md:grid-cols-3 gap-8">
+      <div className="container mx-auto py-4 px-4 md:py-8 grid md:grid-cols-3 gap-4 md:gap-8">
         <div className="md:col-span-2">
-          <Card className="p-6">
+          <Card className="p-4 md:p-6">
             {currentQuestion ? (
               <div>
                 <h2 className="text-xl font-semibold mb-6">{currentQuestion.text}</h2>
@@ -205,14 +333,16 @@ const TestTaking = () => {
                     variant="outline"
                     onClick={goToPreviousQuestion}
                     disabled={currentQuestionIndex === 0}
+                    className="flex items-center"
                   >
-                    Previous
+                    <ChevronLeft className="mr-1 h-4 w-4" /> Previous
                   </Button>
                   <Button
                     onClick={goToNextQuestion}
                     disabled={currentQuestionIndex === questions.length - 1}
+                    className="flex items-center"
                   >
-                    Next
+                    Next <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -223,7 +353,7 @@ const TestTaking = () => {
         </div>
         
         <div>
-          <Card className="p-6">
+          <Card className="p-4 md:p-6">
             <h3 className="font-semibold mb-4">Question Navigation</h3>
             <div className="grid grid-cols-5 gap-2">
               {questions.map((_, index) => (
@@ -241,9 +371,10 @@ const TestTaking = () => {
             <div className="mt-8">
               <Button 
                 className="w-full" 
-                onClick={handleSubmit}
+                onClick={confirmSubmit}
                 disabled={isSubmitting || Object.values(answers).every(a => a === null)}
               >
+                {isSubmitting ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {isSubmitting ? 'Submitting...' : 'Submit Test'}
               </Button>
               <div className="text-xs text-gray-500 text-center mt-2">
@@ -255,6 +386,22 @@ const TestTaking = () => {
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Submit Incomplete Test?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have {unansweredCount} unanswered {unansweredCount === 1 ? 'question' : 'questions'}.
+              Are you sure you want to submit your test?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Test</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmit}>Submit Anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

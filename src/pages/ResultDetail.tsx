@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import MainLayout from '@/components/layouts/MainLayout';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { ChevronDown, ChevronUp, Check, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, X, Loader } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 const ResultDetail = () => {
   const { resultId } = useParams<{ resultId: string }>();
@@ -17,7 +18,9 @@ const ResultDetail = () => {
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadResultData = async () => {
@@ -25,6 +28,7 @@ const ResultDetail = () => {
       
       try {
         setIsLoading(true);
+        setHasError(false);
         const { attempt, test, exam, questions } = await getTestAttemptApi(resultId);
         setAttempt(attempt);
         setTest(test);
@@ -32,13 +36,19 @@ const ResultDetail = () => {
         setQuestions(questions);
       } catch (error) {
         console.error('Failed to load result data:', error);
+        setHasError(true);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load result data. Please try again later.",
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     loadResultData();
-  }, [resultId]);
+  }, [resultId, toast]);
 
   const toggleQuestion = (questionId: string) => {
     setExpandedQuestion(expandedQuestion === questionId ? null : questionId);
@@ -47,22 +57,31 @@ const ResultDetail = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="text-center p-8">Loading result...</div>
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader className="animate-spin h-8 w-8 text-exam-blue mb-4" />
+          <div className="text-xl">Loading result...</div>
+        </div>
       </MainLayout>
     );
   }
 
-  if (!attempt || !test || !exam) {
+  if (hasError || !attempt || !test || !exam) {
     return (
       <MainLayout>
-        <div className="text-center p-8">Result not found</div>
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold mb-4">Result not found</h2>
+          <p className="mb-6">The result you're looking for could not be loaded.</p>
+          <Button asChild>
+            <Link to="/my-attempts">Back to My Attempts</Link>
+          </Button>
+        </div>
       </MainLayout>
     );
   }
 
   const correctAnswers = attempt.answers.filter(a => a.isCorrect).length;
-  const incorrectAnswers = attempt.answers.filter(a => !a.isCorrect).length;
-  const unansweredQuestions = attempt.totalQuestions - attempt.answers.length;
+  const incorrectAnswers = attempt.answers.filter(a => !a.isCorrect && a.selectedOption !== -1).length;
+  const unansweredQuestions = attempt.answers.filter(a => a.selectedOption === -1).length;
   const score = attempt.score;
   const scorePercentage = (score / attempt.totalQuestions) * 100;
   
@@ -131,15 +150,13 @@ const ResultDetail = () => {
                   </div>
                 </div>
                 
-                {unansweredQuestions > 0 && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="text-sm text-gray-600">Unanswered</div>
-                    <div className="text-xl font-semibold text-gray-600">{unansweredQuestions}</div>
-                    <div className="text-sm text-gray-500">
-                      {((unansweredQuestions / attempt.totalQuestions) * 100).toFixed(1)}% of total
-                    </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600">Unanswered</div>
+                  <div className="text-xl font-semibold text-gray-600">{unansweredQuestions}</div>
+                  <div className="text-sm text-gray-500">
+                    {((unansweredQuestions / attempt.totalQuestions) * 100).toFixed(1)}% of total
                   </div>
-                )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -188,22 +205,34 @@ const ResultDetail = () => {
             {questions.map((question, idx) => {
               const answer = attempt.answers.find(a => a.questionId === question.id);
               const isExpanded = expandedQuestion === question.id;
+              const isUnanswered = answer?.selectedOption === -1;
               
               return (
                 <Card key={question.id} className="overflow-hidden">
                   <div 
                     className={`p-4 cursor-pointer flex justify-between items-center ${
-                      answer?.isCorrect ? 'bg-green-50' : 'bg-red-50'
+                      isUnanswered 
+                        ? 'bg-gray-50' 
+                        : answer?.isCorrect 
+                          ? 'bg-green-50' 
+                          : 'bg-red-50'
                     }`}
                     onClick={() => toggleQuestion(question.id)}
                   >
                     <div className="flex items-center space-x-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        answer?.isCorrect 
-                          ? 'bg-green-100 text-green-600' 
-                          : 'bg-red-100 text-red-600'
+                        isUnanswered
+                          ? 'bg-gray-100 text-gray-600'
+                          : answer?.isCorrect 
+                            ? 'bg-green-100 text-green-600' 
+                            : 'bg-red-100 text-red-600'
                       }`}>
-                        {answer?.isCorrect ? <Check size={16} /> : <X size={16} />}
+                        {isUnanswered 
+                          ? '?' 
+                          : answer?.isCorrect 
+                            ? <Check size={16} /> 
+                            : <X size={16} />
+                        }
                       </div>
                       <div>
                         <span className="font-medium">Question {idx + 1}</span>
@@ -228,7 +257,7 @@ const ResultDetail = () => {
                             className={`p-3 rounded-md ${
                               question.correctOption === optIdx
                                 ? 'bg-green-100 border border-green-200'
-                                : answer?.selectedOption === optIdx
+                                : (answer?.selectedOption === optIdx && !isUnanswered)
                                   ? 'bg-red-100 border border-red-200'
                                   : 'bg-gray-50'
                             }`}
@@ -237,11 +266,17 @@ const ResultDetail = () => {
                             {question.correctOption === optIdx && (
                               <span className="text-green-600 ml-2 text-sm">(Correct)</span>
                             )}
-                            {answer?.selectedOption === optIdx && question.correctOption !== optIdx && (
+                            {answer?.selectedOption === optIdx && !isUnanswered && question.correctOption !== optIdx && (
                               <span className="text-red-600 ml-2 text-sm">(Your Answer)</span>
                             )}
                           </div>
                         ))}
+                        
+                        {isUnanswered && (
+                          <div className="p-3 bg-gray-100 rounded-md text-gray-600 italic">
+                            You did not answer this question
+                          </div>
+                        )}
                       </div>
                       
                       {question.explanation && (
@@ -258,7 +293,7 @@ const ResultDetail = () => {
           </div>
         </section>
         
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center pt-4 pb-8">
           <Button asChild>
             <Link to={`/exams/${test.examId}`}>Explore More Tests</Link>
           </Button>
