@@ -97,20 +97,26 @@ const TestTaking = () => {
         }
         
         // Start a new test if no valid saved data exists
-        const { attempt, questions, sections, test } = await startTestAttemptApi(testId, user.id, selectedSections);
+        const { attempt, questions: fetchedQuestions, sections: fetchedSections, test } = await startTestAttemptApi(testId, user.id, selectedSections);
+        
+        // Debug information
+        console.log("API Response - questions:", fetchedQuestions.length);
+        console.log("API Response - sections:", fetchedSections);
+        console.log("API Response - selectedSections:", selectedSections);
+        
         setAttemptId(attempt.id);
-        setQuestions(questions);
+        setQuestions(fetchedQuestions);
         setTest(test);
         
         // Set sections if available
-        if (sections && sections.length > 0) {
-          setSections(sections);
-          setCurrentSectionId(sections[0].id);
+        if (fetchedSections && fetchedSections.length > 0) {
+          setSections(fetchedSections);
+          setCurrentSectionId(fetchedSections[0].id);
         }
         
         // Initialize answers
         const initialAnswers: Record<string, number | null> = {};
-        questions.forEach(q => {
+        fetchedQuestions.forEach(q => {
           initialAnswers[q.id] = null;
         });
         setAnswers(initialAnswers);
@@ -121,7 +127,7 @@ const TestTaking = () => {
         setLastSyncTime(Date.now());
         
         // Save initial test state
-        saveTestProgress(attempt.id, initialAnswers, timeInSeconds, questions, sections, sections?.[0]?.id || null, test);
+        saveTestProgress(attempt.id, initialAnswers, timeInSeconds, fetchedQuestions, fetchedSections, fetchedSections?.[0]?.id || null, test);
         
       } catch (error) {
         console.error('Failed to start test:', error);
@@ -355,6 +361,12 @@ const TestTaking = () => {
   const progressPercentage = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
   const unansweredCount = Object.values(answers).filter(a => a === null).length;
 
+  // Debug information
+  console.log("Current state - questions:", questions.length);
+  console.log("Current state - sections:", sections);
+  console.log("Current state - filteredQuestions:", filteredQuestions.length);
+  console.log("Current state - currentSectionId:", currentSectionId);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
@@ -376,6 +388,9 @@ const TestTaking = () => {
       </div>
     );
   }
+
+  // Ensure sections are properly displayed
+  const hasSections = sections && sections.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -419,7 +434,7 @@ const TestTaking = () => {
       <div className="container mx-auto py-4 px-4 md:py-8 grid md:grid-cols-3 gap-4 md:gap-8">
         <div className="md:col-span-2 space-y-4">
           {/* Section Tabs */}
-          {sections.length > 0 && (
+          {hasSections && (
             <Card className="p-4">
               <Tabs 
                 value={currentSectionId || sections[0]?.id} 
@@ -534,7 +549,7 @@ const TestTaking = () => {
               </div>
             )}
             
-            {sections.length > 0 && (
+            {hasSections && (
               <div className="space-y-3 mb-4">
                 <h4 className="font-medium text-sm">Section Progress:</h4>
                 {sections.map(section => {
@@ -555,7 +570,7 @@ const TestTaking = () => {
           
           <Card className="p-4 md:p-6">
             <h3 className="font-semibold mb-4">Question Navigation</h3>
-            {sections.length > 0 && currentSection && (
+            {hasSections && currentSection && (
               <div className="mb-4">
                 <label className="text-sm font-medium mb-2 block">Section:</label>
                 <select 
