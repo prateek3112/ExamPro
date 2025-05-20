@@ -29,6 +29,12 @@ export interface Test {
   createdBy: string;
 }
 
+export interface QuestionSection {
+  id: string;
+  title: string;
+  description?: string;
+}
+
 export interface Question {
   id: string;
   testId: string;
@@ -36,6 +42,7 @@ export interface Question {
   options: string[];
   correctOption: number;
   explanation?: string;
+  sectionId?: string; // Reference to section
 }
 
 export interface TestAttempt {

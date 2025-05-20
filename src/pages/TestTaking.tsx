@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { startTestAttemptApi, submitTestAttemptApi } from '@/services/api';
-import { Question, Answer } from '@/types';
+import { Question, Answer, QuestionSection } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -12,12 +12,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Progress } from '@/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ChevronLeft, ChevronRight, AlertCircle, Loader } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const STORAGE_KEY_PREFIX = 'exam_pro_test_';
 
 const TestTaking = () => {
   const { testId } = useParams<{ testId: string }>();
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [sections, setSections] = useState<QuestionSection[]>([]);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number | null>>({});
@@ -27,9 +29,15 @@ const TestTaking = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(Date.now());
   const [hasError, setHasError] = useState(false);
+  const [currentSectionId, setCurrentSectionId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Filter questions by section or show all if no sections
+  const filteredQuestions = currentSectionId 
+    ? questions.filter(q => q.sectionId === currentSectionId)
+    : questions;
 
   // Initialize test and load any saved progress
   useEffect(() => {
@@ -45,13 +53,23 @@ const TestTaking = () => {
         
         if (savedData) {
           try {
-            const { attemptId: savedAttemptId, answers: savedAnswers, timeLeft: savedTimeLeft, questions: savedQuestions } = JSON.parse(savedData);
+            const { 
+              attemptId: savedAttemptId, 
+              answers: savedAnswers, 
+              timeLeft: savedTimeLeft, 
+              questions: savedQuestions,
+              sections: savedSections,
+              currentSectionId: savedSectionId 
+            } = JSON.parse(savedData);
             
             if (savedAttemptId && savedAnswers && savedTimeLeft && savedQuestions) {
               setAttemptId(savedAttemptId);
               setAnswers(savedAnswers);
               setTimeLeft(savedTimeLeft);
               setQuestions(savedQuestions);
+              if (savedSections) setSections(savedSections);
+              if (savedSectionId) setCurrentSectionId(savedSectionId);
+              
               toast({
                 title: "Test Resumed",
                 description: "Your previous progress has been restored.",
@@ -67,9 +85,15 @@ const TestTaking = () => {
         }
         
         // Start a new test if no valid saved data exists
-        const { attempt, questions } = await startTestAttemptApi(testId, user.id);
+        const { attempt, questions, sections } = await startTestAttemptApi(testId, user.id);
         setAttemptId(attempt.id);
         setQuestions(questions);
+        
+        // Set sections if available
+        if (sections && sections.length > 0) {
+          setSections(sections);
+          setCurrentSectionId(sections[0].id);
+        }
         
         // Initialize answers
         const initialAnswers: Record<string, number | null> = {};
@@ -84,7 +108,7 @@ const TestTaking = () => {
         setLastSyncTime(Date.now());
         
         // Save initial test state
-        saveTestProgress(attempt.id, initialAnswers, timeInSeconds, questions);
+        saveTestProgress(attempt.id, initialAnswers, timeInSeconds, questions, sections, sections?.[0]?.id || null);
         
       } catch (error) {
         console.error('Failed to start test:', error);
@@ -108,7 +132,9 @@ const TestTaking = () => {
     currentAttemptId: string, 
     currentAnswers: Record<string, number | null>,
     currentTimeLeft: number,
-    currentQuestions: Question[]
+    currentQuestions: Question[],
+    currentSections?: QuestionSection[],
+    sectionId?: string | null
   ) => {
     if (!testId || !user) return;
     
@@ -120,6 +146,8 @@ const TestTaking = () => {
           answers: currentAnswers,
           timeLeft: currentTimeLeft,
           questions: currentQuestions,
+          sections: currentSections || [],
+          currentSectionId: sectionId,
           lastSaved: Date.now(),
         })
       );
@@ -145,14 +173,14 @@ const TestTaking = () => {
         
         // Save progress every minute
         if (newTimeLeft % 60 === 0) {
-          saveTestProgress(attemptId, answers, newTimeLeft, questions);
+          saveTestProgress(attemptId, answers, newTimeLeft, questions, sections, currentSectionId);
         }
         
         // Adjust time if drift detected (every 5 minutes)
         const now = Date.now();
         if (now - lastSyncTime > 5 * 60 * 1000) {
           setLastSyncTime(now);
-          saveTestProgress(attemptId, answers, newTimeLeft, questions);
+          saveTestProgress(attemptId, answers, newTimeLeft, questions, sections, currentSectionId);
         }
         
         return newTimeLeft;
@@ -160,7 +188,7 @@ const TestTaking = () => {
     }, 1000);
     
     return () => clearInterval(timerId);
-  }, [timeLeft, isLoading, attemptId, answers, questions, lastSyncTime]);
+  }, [timeLeft, isLoading, attemptId, answers, questions, sections, currentSectionId, lastSyncTime]);
 
   const handleAnswerSelect = (questionId: string, selectedOption: number) => {
     setAnswers(prev => {
@@ -171,11 +199,21 @@ const TestTaking = () => {
       
       // Save progress immediately when an answer changes
       if (attemptId) {
-        saveTestProgress(attemptId, updatedAnswers, timeLeft, questions);
+        saveTestProgress(attemptId, updatedAnswers, timeLeft, questions, sections, currentSectionId);
       }
       
       return updatedAnswers;
     });
+  };
+
+  const handleSectionChange = (sectionId: string) => {
+    setCurrentSectionId(sectionId);
+    setCurrentQuestionIndex(0); // Reset to first question in the section
+    
+    // Save section change
+    if (attemptId) {
+      saveTestProgress(attemptId, answers, timeLeft, questions, sections, sectionId);
+    }
   };
 
   const goToQuestion = (index: number) => {
@@ -183,7 +221,7 @@ const TestTaking = () => {
   };
 
   const goToNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
+    if (currentQuestionIndex < filteredQuestions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
@@ -252,7 +290,7 @@ const TestTaking = () => {
   };
 
   const isAllAnswered = Object.values(answers).every(answer => answer !== null);
-  const currentQuestion = questions[currentQuestionIndex];
+  const currentQuestion = filteredQuestions[currentQuestionIndex];
   const answeredCount = Object.values(answers).filter(a => a !== null).length;
   const progressPercentage = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
   const unansweredCount = Object.values(answers).filter(a => a === null).length;
@@ -283,7 +321,11 @@ const TestTaking = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="container mx-auto p-4 flex flex-wrap md:flex-nowrap justify-between items-center gap-2">
-          <div className="text-lg font-semibold">Question {currentQuestionIndex + 1} of {questions.length}</div>
+          <div className="text-lg font-semibold">
+            {sections.length > 0 && currentSectionId
+              ? `${sections.find(s => s.id === currentSectionId)?.title} - Question ${currentQuestionIndex + 1} of ${filteredQuestions.length}`
+              : `Question ${currentQuestionIndex + 1} of ${questions.length}`}
+          </div>
           <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4">
             <div className="p-2 bg-exam-blue bg-opacity-10 rounded-md text-exam-blue font-medium">
               Time Left: {formatTime(timeLeft)}
@@ -311,6 +353,26 @@ const TestTaking = () => {
       <div className="container mx-auto py-4 px-4 md:py-8 grid md:grid-cols-3 gap-4 md:gap-8">
         <div className="md:col-span-2">
           <Card className="p-4 md:p-6">
+            {sections.length > 0 && (
+              <Tabs 
+                defaultValue={currentSectionId || sections[0]?.id} 
+                onValueChange={handleSectionChange}
+                className="mb-6"
+              >
+                <TabsList className="w-full overflow-x-auto">
+                  {sections.map(section => (
+                    <TabsTrigger 
+                      key={section.id} 
+                      value={section.id}
+                      className="flex-1"
+                    >
+                      {section.title}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            )}
+            
             {currentQuestion ? (
               <div>
                 <h2 className="text-xl font-semibold mb-6">{currentQuestion.text}</h2>
@@ -339,7 +401,7 @@ const TestTaking = () => {
                   </Button>
                   <Button
                     onClick={goToNextQuestion}
-                    disabled={currentQuestionIndex === questions.length - 1}
+                    disabled={currentQuestionIndex === filteredQuestions.length - 1}
                     className="flex items-center"
                   >
                     Next <ChevronRight className="ml-1 h-4 w-4" />
@@ -347,7 +409,7 @@ const TestTaking = () => {
                 </div>
               </div>
             ) : (
-              <p>No questions available</p>
+              <p>No questions available for this section</p>
             )}
           </Card>
         </div>
@@ -355,11 +417,25 @@ const TestTaking = () => {
         <div>
           <Card className="p-4 md:p-6">
             <h3 className="font-semibold mb-4">Question Navigation</h3>
+            {sections.length > 0 && (
+              <div className="mb-4">
+                <label className="text-sm font-medium mb-2 block">Section:</label>
+                <select 
+                  className="w-full p-2 border rounded-md"
+                  value={currentSectionId || sections[0]?.id}
+                  onChange={(e) => handleSectionChange(e.target.value)}
+                >
+                  {sections.map(section => (
+                    <option key={section.id} value={section.id}>{section.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="grid grid-cols-5 gap-2">
-              {questions.map((_, index) => (
+              {filteredQuestions.map((_, index) => (
                 <Button
                   key={index}
-                  variant={answers[questions[index].id] !== null ? "default" : "outline"}
+                  variant={answers[filteredQuestions[index].id] !== null ? "default" : "outline"}
                   className={`w-full ${currentQuestionIndex === index ? 'ring-2 ring-exam-blue' : ''}`}
                   onClick={() => goToQuestion(index)}
                 >

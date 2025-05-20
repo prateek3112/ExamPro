@@ -1,4 +1,4 @@
-import { User, Exam, Test, Question, TestAttempt, UserRole, Answer } from '../types';
+import { User, Exam, Test, Question, TestAttempt, UserRole, Answer, QuestionSection } from '../types';
 
 // Mock data
 const users: User[] = [
@@ -45,6 +45,24 @@ const exams: Exam[] = [
   },
 ];
 
+// Define sections
+const sections: Record<string, QuestionSection[]> = {
+  '1': [
+    { id: 's1', title: 'Algebra' },
+    { id: 's2', title: 'Geometry' },
+    { id: 's3', title: 'Logic' }
+  ],
+  '2': [
+    { id: 's4', title: 'Triangles' },
+    { id: 's5', title: 'Circles' }
+  ],
+  '3': [
+    { id: 's6', title: 'Mechanics' },
+    { id: 's7', title: 'Thermodynamics' },
+    { id: 's8', title: 'Electromagnetism' }
+  ]
+};
+
 const tests: Test[] = [
   {
     id: '1',
@@ -87,6 +105,7 @@ const questions: Record<string, Question[]> = {
       options: ['x = 1', 'x = 2', 'x = 3', 'x = 4'],
       correctOption: 1,
       explanation: 'Subtract 3 from both sides: 2x = 4, then divide by 2: x = 2',
+      sectionId: 's1'
     },
     {
       id: '2',
@@ -95,6 +114,7 @@ const questions: Record<string, Question[]> = {
       options: ['(x+2)(x+3)', '(x+1)(x+6)', '(x+3)(x+2)', '(x-2)(x-3)'],
       correctOption: 2,
       explanation: 'Find two numbers that multiply to give 6 and add up to 5. The numbers are 2 and 3, so the factorization is (x+2)(x+3)',
+      sectionId: 's1'
     },
     {
       id: '3',
@@ -103,6 +123,7 @@ const questions: Record<string, Question[]> = {
       options: ['x > 3', 'x < 3', 'x > 9/3', 'x < 9/3'],
       correctOption: 0,
       explanation: 'Add 7 to both sides: 3x > 9, then divide by 3: x > 3',
+      sectionId: 's1'
     },
     {
       id: '4',
@@ -111,6 +132,7 @@ const questions: Record<string, Question[]> = {
       options: ['x² - 4x + 6', 'x² + 4x + 6', 'x² - 4x + 2', '5x² - 4x + 6'],
       correctOption: 0,
       explanation: '(3x² - x + 4) - (2x² + 3x - 2) = 3x² - x + 4 - 2x² - 3x + 2 = x² - 4x + 6',
+      sectionId: 's1'
     },
     {
       id: '5',
@@ -119,6 +141,52 @@ const questions: Record<string, Question[]> = {
       options: ['2', '5', '6', '8'],
       correctOption: 1,
       explanation: 'f(4) = 2(4) - 3 = 8 - 3 = 5',
+      sectionId: 's1'
+    },
+    {
+      id: '6',
+      testId: '1',
+      text: 'What is the perimeter of a square with side length 5?',
+      options: ['10', '20', '25', '5'],
+      correctOption: 1,
+      explanation: 'Perimeter = 4 × side length = 4 × 5 = 20',
+      sectionId: 's2'
+    },
+    {
+      id: '7',
+      testId: '1',
+      text: 'What is the area of a circle with radius 4?',
+      options: ['4π', '8π', '12π', '16π'],
+      correctOption: 3,
+      explanation: 'Area = πr² = π × 4² = 16π',
+      sectionId: 's2'
+    },
+    {
+      id: '8',
+      testId: '1',
+      text: 'If a triangle has angles of 30° and 60°, what is the measure of the third angle?',
+      options: ['30°', '60°', '90°', '120°'],
+      correctOption: 2,
+      explanation: 'The sum of angles in a triangle is 180°. So 180° - 30° - 60° = 90°',
+      sectionId: 's2'
+    },
+    {
+      id: '9',
+      testId: '1',
+      text: 'Which statement is a tautology?',
+      options: ['P or not P', 'P and not P', 'P implies P', 'not(P or Q) is equivalent to (not P) or (not Q)'],
+      correctOption: 0,
+      explanation: 'P or not P is always true regardless of the truth value of P, making it a tautology',
+      sectionId: 's3'
+    },
+    {
+      id: '10',
+      testId: '1',
+      text: 'If "If it rains, then the ground is wet" is true, and "The ground is not wet" is true, what can you conclude?',
+      options: ['It is raining', 'It is not raining', 'The ground might be wet', 'The statement is contradictory'],
+      correctOption: 1,
+      explanation: 'This is an application of modus tollens: If P implies Q, and not Q is true, then not P must be true',
+      sectionId: 's3'
     },
   ],
 };
@@ -245,6 +313,7 @@ export const startTestAttemptApi = async (testId: string, userId: string) => {
   }
   
   const testQuestions = questions[testId] || [];
+  const testSections = sections[testId] || [];
   
   const newAttempt: TestAttempt = {
     id: (testAttempts.length + 1).toString(),
@@ -260,6 +329,7 @@ export const startTestAttemptApi = async (testId: string, userId: string) => {
   return {
     attempt: newAttempt,
     questions: testQuestions,
+    sections: testSections
   };
 };
 
