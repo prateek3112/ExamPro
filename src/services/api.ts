@@ -21,174 +21,146 @@ const users: User[] = [
 const exams: Exam[] = [
   {
     id: '1',
-    title: 'Mathematics',
-    description: 'Basic mathematics exam covering algebra, geometry, and calculus',
+    title: 'SSC CGL',
+    description: 'Staff Selection Commission Combined Graduate Level examination for various government posts',
     createdAt: '2023-01-10T00:00:00Z',
     createdBy: '2',
+    examType: 'Government',
     imageUrl: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=500',
   },
   {
     id: '2',
-    title: 'Physics',
-    description: 'Comprehensive physics exam covering mechanics, thermodynamics, and electromagnetism',
+    title: 'JEE Main',
+    description: 'Joint Entrance Examination for admission to engineering colleges across India',
     createdAt: '2023-01-15T00:00:00Z',
     createdBy: '2',
+    examType: 'Engineering',
     imageUrl: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?q=80&w=500',
   },
   {
     id: '3',
-    title: 'Computer Science',
-    description: 'Programming concepts, algorithms, and data structures',
+    title: 'UPSC CSE',
+    description: 'Civil Services Examination for recruitment to various Civil Services of the Government of India',
     createdAt: '2023-01-20T00:00:00Z',
     createdBy: '2',
+    examType: 'Civil Services',
     imageUrl: 'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?q=80&w=500',
   },
 ];
 
-// Define sections
+// Define sections with question counts
 const sections: Record<string, QuestionSection[]> = {
   '1': [
-    { id: 's1', title: 'Algebra' },
-    { id: 's2', title: 'Geometry' },
-    { id: 's3', title: 'Logic' }
+    { id: 's1', title: 'General Intelligence & Reasoning', description: 'Questions on analogies, similarities, differences, spatial visualization, problem solving, analysis, decision making, etc.', questionCount: 25 },
+    { id: 's2', title: 'General Awareness', description: 'Questions on current events, sports, history, geography, economic scene, general politics, Indian Constitution, etc.', questionCount: 25 },
+    { id: 's3', title: 'Quantitative Aptitude', description: 'Questions on arithmetic, algebra, geometry, trigonometry, statistics, etc.', questionCount: 25 },
+    { id: 's4', title: 'English Comprehension', description: 'Questions on understanding of English language, vocabulary, grammar, etc.', questionCount: 25 }
   ],
   '2': [
-    { id: 's4', title: 'Triangles' },
-    { id: 's5', title: 'Circles' }
+    { id: 's5', title: 'Physics', description: 'Questions on mechanics, thermodynamics, optics, electromagnetism, modern physics, etc.', questionCount: 30 },
+    { id: 's6', title: 'Chemistry', description: 'Questions on physical, organic, and inorganic chemistry, etc.', questionCount: 30 },
+    { id: 's7', title: 'Mathematics', description: 'Questions on algebra, calculus, coordinate geometry, etc.', questionCount: 30 }
   ],
   '3': [
-    { id: 's6', title: 'Mechanics' },
-    { id: 's7', title: 'Thermodynamics' },
-    { id: 's8', title: 'Electromagnetism' }
+    { id: 's8', title: 'General Studies Paper I', description: 'Questions on Indian history, geography, society, environment, etc.', questionCount: 35 },
+    { id: 's9', title: 'General Studies Paper II', description: 'Questions on governance, constitution, polity, social justice, international relations, etc.', questionCount: 35 },
+    { id: 's10', title: 'General Studies Paper III', description: 'Questions on technology, economic development, biodiversity, security, disaster management, etc.', questionCount: 35 },
+    { id: 's11', title: 'General Studies Paper IV', description: 'Questions on ethics, integrity, aptitude, etc.', questionCount: 35 }
   ]
 };
 
 const tests: Test[] = [
   {
     id: '1',
-    title: 'Algebra Basics',
-    description: 'Test your knowledge of basic algebraic concepts',
+    title: 'SSC CGL Tier I Mock Test',
+    description: 'Practice test for SSC CGL Tier I examination covering all four sections',
     examId: '1',
-    duration: 30,
-    totalQuestions: 10,
+    duration: 60,
+    totalQuestions: 100,
     createdAt: '2023-01-12T00:00:00Z',
     createdBy: '2',
   },
   {
     id: '2',
-    title: 'Geometry Fundamentals',
-    description: 'Test covering basic geometry principles',
-    examId: '1',
-    duration: 45,
-    totalQuestions: 15,
+    title: 'JEE Main Mock Test',
+    description: 'Practice test for JEE Main covering Physics, Chemistry, and Mathematics',
+    examId: '2',
+    duration: 180,
+    totalQuestions: 90,
     createdAt: '2023-01-14T00:00:00Z',
     createdBy: '2',
   },
   {
     id: '3',
-    title: 'Mechanics',
-    description: 'Test covering Newtonian mechanics',
-    examId: '2',
-    duration: 60,
-    totalQuestions: 20,
+    title: 'UPSC CSE Prelims Mock Test',
+    description: 'Practice test for UPSC CSE Prelims covering all sections',
+    examId: '3',
+    duration: 120,
+    totalQuestions: 100,
     createdAt: '2023-01-16T00:00:00Z',
     createdBy: '2',
   },
 ];
 
+// Generate 100 sample questions for SSC CGL test (25 per section)
+const generateSscQuestions = () => {
+  const questions: Question[] = [];
+  
+  // Reasoning questions (s1)
+  for (let i = 1; i <= 25; i++) {
+    questions.push({
+      id: `q${i}`,
+      testId: '1',
+      text: `Reasoning Question ${i}: If A is related to B in the same way as C is related to D, then how is E related to F?`,
+      options: ['Option A', 'Option B', 'Option C', 'Option D'],
+      correctOption: i % 4,
+      sectionId: 's1'
+    });
+  }
+  
+  // General Awareness questions (s2)
+  for (let i = 26; i <= 50; i++) {
+    questions.push({
+      id: `q${i}`,
+      testId: '1',
+      text: `General Awareness Question ${i-25}: Who is the current Prime Minister of India?`,
+      options: ['Narendra Modi', 'Rahul Gandhi', 'Amit Shah', 'Rajnath Singh'],
+      correctOption: 0,
+      sectionId: 's2'
+    });
+  }
+  
+  // Quantitative Aptitude questions (s3)
+  for (let i = 51; i <= 75; i++) {
+    questions.push({
+      id: `q${i}`,
+      testId: '1',
+      text: `Quantitative Aptitude Question ${i-50}: If the simple interest on a sum for 2 years at 5% per annum is ₹50, what is the principal amount?`,
+      options: ['₹400', '₹500', '₹600', '₹700'],
+      correctOption: 1,
+      sectionId: 's3'
+    });
+  }
+  
+  // English Comprehension questions (s4)
+  for (let i = 76; i <= 100; i++) {
+    questions.push({
+      id: `q${i}`,
+      testId: '1',
+      text: `English Comprehension Question ${i-75}: Choose the word which is most opposite in meaning to the given word: FRUGAL`,
+      options: ['Economical', 'Extravagant', 'Miserly', 'Thrifty'],
+      correctOption: 1,
+      sectionId: 's4'
+    });
+  }
+  
+  return questions;
+};
+
+// Initialize questions for the first test
 const questions: Record<string, Question[]> = {
-  '1': [
-    {
-      id: '1',
-      testId: '1',
-      text: 'Solve for x: 2x + 3 = 7',
-      options: ['x = 1', 'x = 2', 'x = 3', 'x = 4'],
-      correctOption: 1,
-      explanation: 'Subtract 3 from both sides: 2x = 4, then divide by 2: x = 2',
-      sectionId: 's1'
-    },
-    {
-      id: '2',
-      testId: '1',
-      text: 'Factor the expression: x² + 5x + 6',
-      options: ['(x+2)(x+3)', '(x+1)(x+6)', '(x+3)(x+2)', '(x-2)(x-3)'],
-      correctOption: 2,
-      explanation: 'Find two numbers that multiply to give 6 and add up to 5. The numbers are 2 and 3, so the factorization is (x+2)(x+3)',
-      sectionId: 's1'
-    },
-    {
-      id: '3',
-      testId: '1',
-      text: 'Solve the inequality: 3x - 7 > 2',
-      options: ['x > 3', 'x < 3', 'x > 9/3', 'x < 9/3'],
-      correctOption: 0,
-      explanation: 'Add 7 to both sides: 3x > 9, then divide by 3: x > 3',
-      sectionId: 's1'
-    },
-    {
-      id: '4',
-      testId: '1',
-      text: 'Simplify: (3x² - x + 4) - (2x² + 3x - 2)',
-      options: ['x² - 4x + 6', 'x² + 4x + 6', 'x² - 4x + 2', '5x² - 4x + 6'],
-      correctOption: 0,
-      explanation: '(3x² - x + 4) - (2x² + 3x - 2) = 3x² - x + 4 - 2x² - 3x + 2 = x² - 4x + 6',
-      sectionId: 's1'
-    },
-    {
-      id: '5',
-      testId: '1',
-      text: 'If f(x) = 2x - 3, what is f(4)?',
-      options: ['2', '5', '6', '8'],
-      correctOption: 1,
-      explanation: 'f(4) = 2(4) - 3 = 8 - 3 = 5',
-      sectionId: 's1'
-    },
-    {
-      id: '6',
-      testId: '1',
-      text: 'What is the perimeter of a square with side length 5?',
-      options: ['10', '20', '25', '5'],
-      correctOption: 1,
-      explanation: 'Perimeter = 4 × side length = 4 × 5 = 20',
-      sectionId: 's2'
-    },
-    {
-      id: '7',
-      testId: '1',
-      text: 'What is the area of a circle with radius 4?',
-      options: ['4π', '8π', '12π', '16π'],
-      correctOption: 3,
-      explanation: 'Area = πr² = π × 4² = 16π',
-      sectionId: 's2'
-    },
-    {
-      id: '8',
-      testId: '1',
-      text: 'If a triangle has angles of 30° and 60°, what is the measure of the third angle?',
-      options: ['30°', '60°', '90°', '120°'],
-      correctOption: 2,
-      explanation: 'The sum of angles in a triangle is 180°. So 180° - 30° - 60° = 90°',
-      sectionId: 's2'
-    },
-    {
-      id: '9',
-      testId: '1',
-      text: 'Which statement is a tautology?',
-      options: ['P or not P', 'P and not P', 'P implies P', 'not(P or Q) is equivalent to (not P) or (not Q)'],
-      correctOption: 0,
-      explanation: 'P or not P is always true regardless of the truth value of P, making it a tautology',
-      sectionId: 's3'
-    },
-    {
-      id: '10',
-      testId: '1',
-      text: 'If "If it rains, then the ground is wet" is true, and "The ground is not wet" is true, what can you conclude?',
-      options: ['It is raining', 'It is not raining', 'The ground might be wet', 'The statement is contradictory'],
-      correctOption: 1,
-      explanation: 'This is an application of modus tollens: If P implies Q, and not Q is true, then not P must be true',
-      sectionId: 's3'
-    },
-  ],
+  '1': generateSscQuestions(),
+  // Other tests' questions would be defined here
 };
 
 const testAttempts: TestAttempt[] = [];
@@ -313,7 +285,7 @@ export const startTestAttemptApi = async (testId: string, userId: string) => {
   }
   
   const testQuestions = questions[testId] || [];
-  const testSections = sections[testId] || [];
+  const testSections = sections[test.examId] || [];
   
   const newAttempt: TestAttempt = {
     id: (testAttempts.length + 1).toString(),
@@ -329,7 +301,8 @@ export const startTestAttemptApi = async (testId: string, userId: string) => {
   return {
     attempt: newAttempt,
     questions: testQuestions,
-    sections: testSections
+    sections: testSections,
+    test: test
   };
 };
 

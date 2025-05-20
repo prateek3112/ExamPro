@@ -16,6 +16,7 @@ export interface Exam {
   createdAt: string;
   createdBy: string;
   imageUrl?: string;
+  examType?: string; // Like "JEE", "SSC CGL", etc.
 }
 
 export interface Test {
@@ -33,6 +34,7 @@ export interface QuestionSection {
   id: string;
   title: string;
   description?: string;
+  questionCount: number; // Number of questions in this section
 }
 
 export interface Question {
