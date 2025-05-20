@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import { BarChart } from '@/components/ui/chart'; 
+import { BarChart } from '@/components/ui/bar-chart'; 
 
 const AdminDashboard = () => {
   // Mock data for the dashboard
