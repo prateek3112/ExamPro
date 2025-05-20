@@ -157,10 +157,54 @@ const generateSscQuestions = () => {
   return questions;
 };
 
-// Initialize questions for the first test
+// Generate questions for JEE Main test (30 per section)
+const generateJeeQuestions = () => {
+  const questions: Question[] = [];
+  
+  // Physics questions (s5)
+  for (let i = 1; i <= 30; i++) {
+    questions.push({
+      id: `jq${i}`,
+      testId: '2',
+      text: `Physics Question ${i}: A ball is thrown vertically upward with a velocity of 20 m/s. What will be its velocity after 2 seconds?`,
+      options: ['0 m/s', '0.2 m/s', '-0.2 m/s', '2 m/s'],
+      correctOption: 2,
+      sectionId: 's5'
+    });
+  }
+  
+  // Chemistry questions (s6)
+  for (let i = 31; i <= 60; i++) {
+    questions.push({
+      id: `jq${i}`,
+      testId: '2',
+      text: `Chemistry Question ${i-30}: What is the pH of a neutral solution at 25°C?`,
+      options: ['0', '7', '14', '1'],
+      correctOption: 1,
+      sectionId: 's6'
+    });
+  }
+  
+  // Mathematics questions (s7)
+  for (let i = 61; i <= 90; i++) {
+    questions.push({
+      id: `jq${i}`,
+      testId: '2',
+      text: `Mathematics Question ${i-60}: If f(x) = x² and g(x) = 2x + 1, what is (f ∘ g)(2)?`,
+      options: ['25', '9', '5', '36'],
+      correctOption: 0,
+      sectionId: 's7'
+    });
+  }
+  
+  return questions;
+};
+
+// Initialize questions for all tests
 const questions: Record<string, Question[]> = {
   '1': generateSscQuestions(),
-  // Other tests' questions would be defined here
+  '2': generateJeeQuestions(),
+  // Other tests can be initialized as needed
 };
 
 const testAttempts: TestAttempt[] = [];
@@ -287,15 +331,23 @@ export const startTestAttemptApi = async (testId: string, userId: string, select
   const testQuestions = questions[testId] || [];
   const testSections = sections[test.examId] || [];
   
+  console.log("API Debug - All Questions:", testQuestions.length);
+  console.log("API Debug - All Sections:", testSections);
+  console.log("API Debug - Selected Sections:", selectedSections);
+  
   // Filter questions by selected sections if applicable
-  const filteredQuestions = selectedSections && selectedSections.length > 0
-    ? testQuestions.filter(q => q.sectionId && selectedSections.includes(q.sectionId))
-    : testQuestions;
+  let filteredQuestions = testQuestions;
+  if (selectedSections && selectedSections.length > 0) {
+    filteredQuestions = testQuestions.filter(q => q.sectionId && selectedSections.includes(q.sectionId));
+    console.log("API Debug - Filtered Questions Count:", filteredQuestions.length);
+  }
   
   // Filter sections by selected sections if applicable
-  const filteredSections = selectedSections && selectedSections.length > 0
-    ? testSections.filter(s => selectedSections.includes(s.id))
-    : testSections;
+  let filteredSections = testSections;
+  if (selectedSections && selectedSections.length > 0) {
+    filteredSections = testSections.filter(s => selectedSections.includes(s.id));
+    console.log("API Debug - Filtered Sections:", filteredSections);
+  }
   
   const newAttempt: TestAttempt = {
     id: (testAttempts.length + 1).toString(),

@@ -104,6 +104,11 @@ const TestTaking = () => {
         console.log("API Response - sections:", fetchedSections);
         console.log("API Response - selectedSections:", selectedSections);
         
+        // Validate questions and sections
+        if (!fetchedQuestions || fetchedQuestions.length === 0) {
+          throw new Error("No questions available for the selected sections");
+        }
+        
         setAttemptId(attempt.id);
         setQuestions(fetchedQuestions);
         setTest(test);
@@ -391,6 +396,20 @@ const TestTaking = () => {
 
   // Ensure sections are properly displayed
   const hasSections = sections && sections.length > 0;
+  
+  // Handle error if no questions are loaded
+  if (!currentQuestion) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
+        <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">No questions available</h2>
+        <p className="mb-4">There are no questions available for the selected sections.</p>
+        <Button onClick={() => navigate(`/tests/${testId}`)}>
+          Back to Test Details
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
