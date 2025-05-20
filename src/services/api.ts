@@ -96,7 +96,7 @@ const tests: Test[] = [
     description: 'Practice test for UPSC CSE Prelims covering all sections',
     examId: '3',
     duration: 120,
-    totalQuestions: 100,
+    totalQuestions: 140,
     createdAt: '2023-01-16T00:00:00Z',
     createdBy: '2',
   },
@@ -277,7 +277,7 @@ export const createQuestionApi = async (question: Omit<Question, 'id'>) => {
 };
 
 // Test attempts API
-export const startTestAttemptApi = async (testId: string, userId: string) => {
+export const startTestAttemptApi = async (testId: string, userId: string, selectedSections?: string[]) => {
   await delay(500);
   const test = tests.find(t => t.id === testId);
   if (!test) {
@@ -287,21 +287,33 @@ export const startTestAttemptApi = async (testId: string, userId: string) => {
   const testQuestions = questions[testId] || [];
   const testSections = sections[test.examId] || [];
   
+  // Filter questions by selected sections if applicable
+  const filteredQuestions = selectedSections && selectedSections.length > 0
+    ? testQuestions.filter(q => q.sectionId && selectedSections.includes(q.sectionId))
+    : testQuestions;
+  
+  // Filter sections by selected sections if applicable
+  const filteredSections = selectedSections && selectedSections.length > 0
+    ? testSections.filter(s => selectedSections.includes(s.id))
+    : testSections;
+  
   const newAttempt: TestAttempt = {
     id: (testAttempts.length + 1).toString(),
     testId,
     userId,
     startedAt: new Date().toISOString(),
     score: 0,
-    totalQuestions: testQuestions.length,
+    totalQuestions: filteredQuestions.length,
     answers: [],
+    selectedSections
   };
   
   testAttempts.push(newAttempt);
+  
   return {
     attempt: newAttempt,
-    questions: testQuestions,
-    sections: testSections,
+    questions: filteredQuestions,
+    sections: filteredSections,
     test: test
   };
 };
@@ -353,10 +365,15 @@ export const getTestAttemptApi = async (attemptId: string) => {
   
   const testQuestions = questions[attempt.testId] || [];
   
+  // Filter questions by selected sections if applicable
+  const filteredQuestions = attempt.selectedSections && attempt.selectedSections.length > 0
+    ? testQuestions.filter(q => q.sectionId && attempt.selectedSections?.includes(q.sectionId))
+    : testQuestions;
+  
   return {
     attempt,
     test,
     exam,
-    questions: testQuestions,
+    questions: filteredQuestions,
   };
 };

@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { startTestAttemptApi, submitTestAttemptApi } from '@/services/api';
 import { Question, Answer, QuestionSection, Test } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Progress } from '@/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { ChevronLeft, ChevronRight, AlertCircle, Loader, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertCircle, Loader, BookOpen, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 
@@ -19,6 +19,9 @@ const STORAGE_KEY_PREFIX = 'exam_pro_test_';
 
 const TestTaking = () => {
   const { testId } = useParams<{ testId: string }>();
+  const location = useLocation();
+  const selectedSections = location.state?.selectedSections || [];
+  
   const [questions, setQuestions] = useState<Question[]>([]);
   const [sections, setSections] = useState<QuestionSection[]>([]);
   const [test, setTest] = useState<Test | null>(null);
@@ -94,7 +97,7 @@ const TestTaking = () => {
         }
         
         // Start a new test if no valid saved data exists
-        const { attempt, questions, sections, test } = await startTestAttemptApi(testId, user.id);
+        const { attempt, questions, sections, test } = await startTestAttemptApi(testId, user.id, selectedSections);
         setAttemptId(attempt.id);
         setQuestions(questions);
         setTest(test);
@@ -135,7 +138,7 @@ const TestTaking = () => {
     };
 
     startTest();
-  }, [testId, user, toast, navigate]);
+  }, [testId, user, toast, navigate, selectedSections]);
 
   // Save test progress to localStorage
   const saveTestProgress = (
@@ -235,12 +238,36 @@ const TestTaking = () => {
   const goToNextQuestion = () => {
     if (currentQuestionIndex < filteredQuestions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else if (sections.length > 1) {
+      // Try to move to the next section if available
+      const currentSectionIndex = sections.findIndex(s => s.id === currentSectionId);
+      if (currentSectionIndex < sections.length - 1) {
+        const nextSection = sections[currentSectionIndex + 1];
+        setCurrentSectionId(nextSection.id);
+        setCurrentQuestionIndex(0);
+        
+        toast({
+          title: `Moving to ${nextSection.title}`,
+          description: "You've completed the current section.",
+        });
+      }
     }
   };
 
   const goToPreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
+    } else if (sections.length > 1) {
+      // Try to move to the previous section if available
+      const currentSectionIndex = sections.findIndex(s => s.id === currentSectionId);
+      if (currentSectionIndex > 0) {
+        const prevSection = sections[currentSectionIndex - 1];
+        setCurrentSectionId(prevSection.id);
+        
+        // Move to the last question of the previous section
+        const prevSectionQuestions = questions.filter(q => q.sectionId === prevSection.id);
+        setCurrentQuestionIndex(prevSectionQuestions.length - 1);
+      }
     }
   };
 
@@ -300,11 +327,15 @@ const TestTaking = () => {
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
     
+    let formattedTime = '';
+    
     if (hours > 0) {
-      return `${hours}:${minutes < 10 ? '0' : ''}${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+      formattedTime += `${hours}:${minutes < 10 ? '0' : ''}${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+    } else {
+      formattedTime += `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
     }
     
-    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+    return formattedTime;
   };
 
   // Calculate section progress
@@ -315,6 +346,8 @@ const TestTaking = () => {
     const answeredCount = sectionQuestions.filter(q => answers[q.id] !== null).length;
     return Math.round((answeredCount / sectionQuestions.length) * 100);
   };
+
+  const isQuestionAnswered = (questionId: string) => answers[questionId] !== null;
 
   const isAllAnswered = Object.values(answers).every(answer => answer !== null);
   const currentQuestion = filteredQuestions[currentQuestionIndex];
@@ -359,8 +392,9 @@ const TestTaking = () => {
             </div>
           </div>
           <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4">
-            <div className="p-2 bg-exam-blue bg-opacity-10 rounded-md text-exam-blue font-medium">
-              Time Left: {formatTime(timeLeft)}
+            <div className="flex items-center gap-1 p-2 bg-exam-blue bg-opacity-10 rounded-md text-exam-blue font-medium">
+              <Clock className="h-4 w-4" />
+              <span>{formatTime(timeLeft)}</span>
             </div>
             <Button 
               variant="outline" 
@@ -388,7 +422,7 @@ const TestTaking = () => {
           {sections.length > 0 && (
             <Card className="p-4">
               <Tabs 
-                defaultValue={currentSectionId || sections[0]?.id} 
+                value={currentSectionId || sections[0]?.id} 
                 onValueChange={handleSectionChange}
                 className="w-full"
               >
@@ -456,14 +490,17 @@ const TestTaking = () => {
                   <Button
                     variant="outline"
                     onClick={goToPreviousQuestion}
-                    disabled={currentQuestionIndex === 0}
+                    disabled={currentQuestionIndex === 0 && (sections.length <= 1 || sections.findIndex(s => s.id === currentSectionId) === 0)}
                     className="flex items-center"
                   >
                     <ChevronLeft className="mr-1 h-4 w-4" /> Previous
                   </Button>
                   <Button
                     onClick={goToNextQuestion}
-                    disabled={currentQuestionIndex === filteredQuestions.length - 1}
+                    disabled={
+                      currentQuestionIndex === filteredQuestions.length - 1 && 
+                      (sections.length <= 1 || sections.findIndex(s => s.id === currentSectionId) === sections.length - 1)
+                    }
                     className="flex items-center"
                   >
                     Next <ChevronRight className="ml-1 h-4 w-4" />
@@ -484,7 +521,7 @@ const TestTaking = () => {
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Total Questions:</span>
-                  <span className="font-medium">{test.totalQuestions}</span>
+                  <span className="font-medium">{questions.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Time Remaining:</span>
@@ -533,10 +570,9 @@ const TestTaking = () => {
               </div>
             )}
             
-            <div className="grid grid-cols-5 gap-2">
-              {filteredQuestions.map((_, index) => {
-                const questionId = filteredQuestions[index].id;
-                const isAnswered = answers[questionId] !== null;
+            <div className="grid grid-cols-5 gap-2 max-h-60 overflow-y-auto p-1">
+              {filteredQuestions.map((question, index) => {
+                const isAnswered = isQuestionAnswered(question.id);
                 
                 return (
                   <Button
@@ -563,7 +599,7 @@ const TestTaking = () => {
               <div className="text-xs text-gray-500 text-center mt-2">
                 {isAllAnswered 
                   ? 'All questions answered' 
-                  : `${questions.length - answeredCount} questions unanswered`}
+                  : `${unansweredCount} questions unanswered`}
               </div>
             </div>
           </Card>

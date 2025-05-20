@@ -35,6 +35,7 @@ export interface QuestionSection {
   title: string;
   description?: string;
   questionCount: number; // Number of questions in this section
+  isSelected?: boolean; // Whether the section is selected by the student
 }
 
 export interface Question {
@@ -56,6 +57,7 @@ export interface TestAttempt {
   score: number;
   totalQuestions: number;
   answers: Answer[];
+  selectedSections?: string[]; // Sections selected by the student
 }
 
 export interface Answer {
