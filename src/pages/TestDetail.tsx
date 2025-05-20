@@ -13,6 +13,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/layouts/MainLayout';
 import { Loader, AlertCircle, Clock, BookOpen } from 'lucide-react';
 
+// Define mock sections data since it's not available on window
+const mockSections: Record<string, QuestionSection[]> = {
+  "1": [
+    { id: "s1", title: "Mathematics", description: "Algebra, Calculus and Geometry", questionCount: 20 },
+    { id: "s2", title: "Physics", description: "Mechanics, Thermodynamics and Electromagnetism", questionCount: 15 },
+    { id: "s3", title: "Chemistry", description: "Organic and Inorganic chemistry", questionCount: 15 }
+  ],
+  "2": [
+    { id: "s4", title: "Verbal", description: "Reading comprehension and vocabulary", questionCount: 20 },
+    { id: "s5", title: "Quantitative", description: "Problem solving and data analysis", questionCount: 20 }
+  ]
+};
+
 const TestDetail = () => {
   const { testId } = useParams<{ testId: string }>();
   const [test, setTest] = useState<Test | null>(null);
@@ -51,9 +64,10 @@ const TestDetail = () => {
           if (q.sectionId) uniqueSectionIds.add(q.sectionId);
         });
         
-        // Get section data from our data source
+        // Get section data from our mock data instead of window.sections
         if (examData) {
-          const examSections = window.sections?.[examData.id] || [];
+          // Use mock data instead of window.sections
+          const examSections = mockSections[examData.id] || [];
           examSections.forEach(section => {
             sectionMap.set(section.id, {
               ...section,
