@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { startTestAttemptApi, submitTestAttemptApi } from '@/services/api';
+import { startTestAttemptApi, submitTestAttemptApi, getQuestionsByTestApi } from '@/services/api';
 import { Question, Answer, QuestionSection, Test } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -38,16 +38,6 @@ const TestTaking = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  // Filter questions by section or show all if no sections
-  const filteredQuestions = currentSectionId 
-    ? questions.filter(q => q.sectionId === currentSectionId)
-    : questions;
-
-  // Current section details
-  const currentSection = currentSectionId 
-    ? sections.find(s => s.id === currentSectionId)
-    : null;
 
   // Initialize test and load any saved progress
   useEffect(() => {
@@ -97,20 +87,27 @@ const TestTaking = () => {
         }
         
         // Start a new test if no valid saved data exists
-        const { attempt, questions: fetchedQuestions, sections: fetchedSections, test } = await startTestAttemptApi(testId, user.id, selectedSections);
+        const response = await startTestAttemptApi(testId, user.id, selectedSections);
+        const { attempt, questions: fetchedQuestions, sections: fetchedSections, test } = response;
         
         // Debug information
-        console.log("API Response - questions:", fetchedQuestions.length);
+        console.log("API Response - questions:", fetchedQuestions?.length);
         console.log("API Response - sections:", fetchedSections);
         console.log("API Response - selectedSections:", selectedSections);
         
         // Validate questions and sections
         if (!fetchedQuestions || fetchedQuestions.length === 0) {
-          throw new Error("No questions available for the selected sections");
+          // If no questions were returned with selected sections, try to fetch all questions
+          const allQuestions = await getQuestionsByTestApi(testId);
+          if (!allQuestions || allQuestions.length === 0) {
+            throw new Error("No questions available for this test");
+          }
+          setQuestions(allQuestions);
+        } else {
+          setQuestions(fetchedQuestions);
         }
         
         setAttemptId(attempt.id);
-        setQuestions(fetchedQuestions);
         setTest(test);
         
         // Set sections if available
@@ -119,9 +116,10 @@ const TestTaking = () => {
           setCurrentSectionId(fetchedSections[0].id);
         }
         
-        // Initialize answers
+        // Initialize answers for all questions
         const initialAnswers: Record<string, number | null> = {};
-        fetchedQuestions.forEach(q => {
+        const questionsToUse = fetchedQuestions && fetchedQuestions.length > 0 ? fetchedQuestions : (await getQuestionsByTestApi(testId));
+        questionsToUse.forEach(q => {
           initialAnswers[q.id] = null;
         });
         setAnswers(initialAnswers);
@@ -132,7 +130,7 @@ const TestTaking = () => {
         setLastSyncTime(Date.now());
         
         // Save initial test state
-        saveTestProgress(attempt.id, initialAnswers, timeInSeconds, fetchedQuestions, fetchedSections, fetchedSections?.[0]?.id || null, test);
+        saveTestProgress(attempt.id, initialAnswers, timeInSeconds, questionsToUse, fetchedSections, fetchedSections?.[0]?.id || null, test);
         
       } catch (error) {
         console.error('Failed to start test:', error);
@@ -150,6 +148,16 @@ const TestTaking = () => {
 
     startTest();
   }, [testId, user, toast, navigate, selectedSections]);
+
+  // Filter questions by section or show all if no sections
+  const filteredQuestions = currentSectionId 
+    ? questions.filter(q => q.sectionId === currentSectionId)
+    : questions;
+
+  // Current section details
+  const currentSection = currentSectionId 
+    ? sections.find(s => s.id === currentSectionId)
+    : null;
 
   // Save test progress to localStorage
   const saveTestProgress = (
@@ -328,8 +336,7 @@ const TestTaking = () => {
         title: "Submission Error",
         description: "Failed to submit the test. Please try again.",
       });
-    } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Make sure to set this to false when there's an error
     }
   };
 
@@ -361,16 +368,18 @@ const TestTaking = () => {
   const isQuestionAnswered = (questionId: string) => answers[questionId] !== null;
 
   const isAllAnswered = Object.values(answers).every(answer => answer !== null);
-  const currentQuestion = filteredQuestions[currentQuestionIndex];
   const answeredCount = Object.values(answers).filter(a => a !== null).length;
   const progressPercentage = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
   const unansweredCount = Object.values(answers).filter(a => a === null).length;
 
-  // Debug information
-  console.log("Current state - questions:", questions.length);
-  console.log("Current state - sections:", sections);
-  console.log("Current state - filteredQuestions:", filteredQuestions.length);
-  console.log("Current state - currentSectionId:", currentSectionId);
+  // Debug logs for visibility
+  console.log("Questions array length:", questions.length);
+  console.log("Filtered questions length:", filteredQuestions.length);
+  console.log("Current section ID:", currentSectionId);
+  console.log("Selected sections:", selectedSections);
+  console.log("Sections array:", sections);
+  console.log("Current question index:", currentQuestionIndex);
+  console.log("Current question:", filteredQuestions[currentQuestionIndex]);
 
   if (isLoading) {
     return (
@@ -394,22 +403,44 @@ const TestTaking = () => {
     );
   }
 
-  // Ensure sections are properly displayed
-  const hasSections = sections && sections.length > 0;
-  
-  // Handle error if no questions are loaded
-  if (!currentQuestion) {
+  // Handle the case where there are no questions
+  if (questions.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
         <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
         <h2 className="text-2xl font-bold mb-2">No questions available</h2>
-        <p className="mb-4">There are no questions available for the selected sections.</p>
+        <p className="mb-4">There are no questions available for this test or the selected sections.</p>
         <Button onClick={() => navigate(`/tests/${testId}`)}>
           Back to Test Details
         </Button>
       </div>
     );
   }
+
+  // Handle the case where filteredQuestions is empty
+  if (filteredQuestions.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
+        <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">No questions for this section</h2>
+        <p className="mb-4">There are no questions available for the currently selected section.</p>
+        <Button onClick={() => navigate(`/tests/${testId}`)}>
+          Back to Test Details
+        </Button>
+      </div>
+    );
+  }
+
+  // Get the current question safely
+  const currentQuestion = filteredQuestions[currentQuestionIndex];
+  if (!currentQuestion) {
+    // Reset to first question if current index is invalid
+    setCurrentQuestionIndex(0);
+    return null;
+  }
+
+  // Ensure sections are properly displayed
+  const hasSections = sections && sections.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -610,7 +641,7 @@ const TestTaking = () => {
                 
                 return (
                   <Button
-                    key={index}
+                    key={question.id}
                     variant={isAnswered ? "default" : "outline"}
                     className={`w-full h-10 p-0 ${currentQuestionIndex === index ? 'ring-2 ring-exam-blue' : ''}`}
                     onClick={() => goToQuestion(index)}

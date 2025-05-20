@@ -1,3 +1,4 @@
+
 import { User, Exam, Test, Question, TestAttempt, UserRole, Answer, QuestionSection } from '../types';
 
 // Mock data
@@ -331,7 +332,7 @@ export const startTestAttemptApi = async (testId: string, userId: string, select
   const testQuestions = questions[testId] || [];
   const testSections = sections[test.examId] || [];
   
-  console.log("API Debug - All Questions:", testQuestions.length);
+  console.log("API Debug - All Questions Count:", testQuestions.length);
   console.log("API Debug - All Sections:", testSections);
   console.log("API Debug - Selected Sections:", selectedSections);
   
@@ -366,14 +367,18 @@ export const startTestAttemptApi = async (testId: string, userId: string, select
     attempt: newAttempt,
     questions: filteredQuestions,
     sections: filteredSections,
-    test: test
+    test
   };
 };
 
 export const submitTestAttemptApi = async (attemptId: string, answers: Answer[]) => {
   await delay(1000);
+  console.log("Submitting attempt:", attemptId);
+  console.log("Answers being submitted:", answers);
+  
   const attemptIndex = testAttempts.findIndex(a => a.id === attemptId);
   if (attemptIndex === -1) {
+    console.error("Attempt not found:", attemptId);
     throw new Error('Test attempt not found');
   }
   
@@ -390,6 +395,8 @@ export const submitTestAttemptApi = async (attemptId: string, answers: Answer[])
   };
   
   testAttempts[attemptIndex] = updatedAttempt;
+  console.log("Updated attempt:", updatedAttempt);
+  
   return updatedAttempt;
 };
 
