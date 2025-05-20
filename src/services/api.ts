@@ -302,6 +302,7 @@ export const createTestApi = async (test: Omit<Test, 'id' | 'createdAt' | 'creat
 // Questions API
 export const getQuestionsByTestApi = async (testId: string) => {
   await delay(300);
+  console.log(`Getting questions for test ${testId}, count: ${questions[testId]?.length || 0}`);
   return questions[testId] || [];
 };
 
@@ -337,14 +338,20 @@ export const startTestAttemptApi = async (testId: string, userId: string, select
   console.log("API Debug - Selected Sections:", selectedSections);
   
   // Filter questions by selected sections if applicable
-  let filteredQuestions = testQuestions;
+  let filteredQuestions = [...testQuestions]; // Make a copy to avoid reference issues
   if (selectedSections && selectedSections.length > 0) {
     filteredQuestions = testQuestions.filter(q => q.sectionId && selectedSections.includes(q.sectionId));
     console.log("API Debug - Filtered Questions Count:", filteredQuestions.length);
   }
   
+  // If no questions were filtered (maybe because sectionId is missing), use all questions
+  if (filteredQuestions.length === 0) {
+    filteredQuestions = [...testQuestions];
+    console.log("API Debug - Using all questions instead:", filteredQuestions.length);
+  }
+  
   // Filter sections by selected sections if applicable
-  let filteredSections = testSections;
+  let filteredSections = [...testSections]; // Make a copy to avoid reference issues
   if (selectedSections && selectedSections.length > 0) {
     filteredSections = testSections.filter(s => selectedSections.includes(s.id));
     console.log("API Debug - Filtered Sections:", filteredSections);
@@ -375,6 +382,7 @@ export const submitTestAttemptApi = async (attemptId: string, answers: Answer[])
   await delay(1000);
   console.log("Submitting attempt:", attemptId);
   console.log("Answers being submitted:", answers);
+  console.log("Total answers:", answers.length);
   
   const attemptIndex = testAttempts.findIndex(a => a.id === attemptId);
   if (attemptIndex === -1) {

@@ -119,6 +119,10 @@ const TestTaking = () => {
         // Initialize answers for all questions
         const initialAnswers: Record<string, number | null> = {};
         const questionsToUse = fetchedQuestions && fetchedQuestions.length > 0 ? fetchedQuestions : (await getQuestionsByTestApi(testId));
+        
+        // Debug logging
+        console.log("Questions to use:", questionsToUse.length);
+        
         questionsToUse.forEach(q => {
           initialAnswers[q.id] = null;
         });
@@ -153,6 +157,10 @@ const TestTaking = () => {
   const filteredQuestions = currentSectionId 
     ? questions.filter(q => q.sectionId === currentSectionId)
     : questions;
+
+  console.log("Current section ID:", currentSectionId);
+  console.log("Total questions:", questions.length);
+  console.log("Filtered questions:", filteredQuestions.length);
 
   // Current section details
   const currentSection = currentSectionId 
@@ -305,6 +313,7 @@ const TestTaking = () => {
     try {
       setIsSubmitting(true);
       
+      // Format answers for submission
       const formattedAnswers: Answer[] = Object.entries(answers).map(([questionId, selectedOption]) => {
         const question = questions.find(q => q.id === questionId);
         const isCorrect = selectedOption !== null && question ? selectedOption === question.correctOption : false;
@@ -316,6 +325,9 @@ const TestTaking = () => {
         };
       });
       
+      console.log("Submitting answers:", formattedAnswers.length);
+      
+      // Submit the test attempt
       await submitTestAttemptApi(attemptId, formattedAnswers);
       
       toast({
@@ -336,7 +348,7 @@ const TestTaking = () => {
         title: "Submission Error",
         description: "Failed to submit the test. Please try again.",
       });
-      setIsSubmitting(false); // Make sure to set this to false when there's an error
+      setIsSubmitting(false);
     }
   };
 
@@ -379,7 +391,6 @@ const TestTaking = () => {
   console.log("Selected sections:", selectedSections);
   console.log("Sections array:", sections);
   console.log("Current question index:", currentQuestionIndex);
-  console.log("Current question:", filteredQuestions[currentQuestionIndex]);
 
   if (isLoading) {
     return (
