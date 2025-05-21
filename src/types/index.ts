@@ -1,11 +1,14 @@
-// If this file exists, we'll add the User interface without modifying other types
 
-// Add the following User interface if it doesn't already exist:
+// User interface with role property added
 export interface User {
   id: string;
   name: string;
   email: string;
+  role?: UserRole;
 }
+
+// UserRole type for authentication
+export type UserRole = 'user' | 'admin' | 'teacher';
 
 export interface Exam {
     id: string;
@@ -43,6 +46,7 @@ export interface QuestionSection {
     title: string;
     description: string;
     questionCount: number;
+    isSelected?: boolean; // Added isSelected property to support UI state
 }
 
 export interface TestAttempt {

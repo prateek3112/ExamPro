@@ -10,9 +10,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
-// Fallback data for mock exam IDs
+// Fallback data for mock exams
 const mockExams: Record<string, Exam> = {
-  "1": {
+  "00000000-0000-0000-0000-000000000001": {
     id: "00000000-0000-0000-0000-000000000001",
     title: "JEE Exam",
     description: "Joint Entrance Examination for engineering college admissions",
@@ -21,7 +21,7 @@ const mockExams: Record<string, Exam> = {
     imageUrl: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=2070&auto=format&fit=crop",
     examType: "JEE",
   },
-  "2": {
+  "00000000-0000-0000-0000-000000000002": {
     id: "00000000-0000-0000-0000-000000000002",
     title: "SSC Exam",
     description: "Staff Selection Commission examination for government positions",
@@ -30,7 +30,7 @@ const mockExams: Record<string, Exam> = {
     imageUrl: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=2070&auto=format&fit=crop",
     examType: "SSC",
   },
-  "3": {
+  "00000000-0000-0000-0000-000000000003": {
     id: "00000000-0000-0000-0000-000000000003",
     title: "NEET Exam",
     description: "National Eligibility cum Entrance Test for medical admissions",
@@ -43,7 +43,7 @@ const mockExams: Record<string, Exam> = {
 
 // Fallback tests data
 const mockTests: Record<string, Test[]> = {
-  "1": [
+  "00000000-0000-0000-0000-000000000001": [
     {
       id: "t-00001",
       title: "JEE Maths Test",
@@ -65,7 +65,7 @@ const mockTests: Record<string, Test[]> = {
       createdBy: "system"
     }
   ],
-  "2": [
+  "00000000-0000-0000-0000-000000000002": [
     {
       id: "t-00003",
       title: "SSC English Test",
@@ -87,7 +87,7 @@ const mockTests: Record<string, Test[]> = {
       createdBy: "system"
     }
   ],
-  "3": [
+  "00000000-0000-0000-0000-000000000003": [
     {
       id: "t-00005",
       title: "NEET Biology Test",
@@ -119,30 +119,16 @@ const ExamDetail = () => {
         
         console.log("Fetching exam with ID:", examId);
         
-        // Handle mock IDs (either UUID format with 00000000 prefix or numeric ID)
-        if (examId.startsWith('00000000') || ["1", "2", "3"].includes(examId)) {
-          // Extract the numeric part from the UUID or use the ID directly
-          const numericId = examId.startsWith('00000000') 
-            ? examId.split('-')[4] || examId
-            : examId;
-          
-          console.log("Using mock data for exam ID:", numericId);
-          
-          // Get mock data
-          const mockExam = mockExams[numericId];
-          const mockTestsForExam = mockTests[numericId] || [];
-          
-          if (mockExam) {
-            setExam(mockExam);
-            setTests(mockTestsForExam);
-            return;
-          } else {
-            // If no matching mock exam, try to load from API as fallback
-            console.log("No matching mock exam, trying API...");
-          }
+        // Check if this is a mock exam ID first
+        if (mockExams[examId]) {
+          console.log("Using mock data for exam ID:", examId);
+          setExam(mockExams[examId]);
+          setTests(mockTests[examId] || []);
+          setIsLoading(false);
+          return;
         }
         
-        // Try Supabase API
+        // Try Supabase API with error handling
         try {
           const examData = await getExam(examId);
           console.log("Exam data retrieved:", examData);
@@ -153,19 +139,43 @@ const ExamDetail = () => {
           setTests(testsData);
         } catch (apiError) {
           console.error('Failed to load exam from API:', apiError);
+          toast({
+            variant: "destructive",
+            title: "Connection Error",
+            description: "Could not connect to database. Using demo data instead."
+          });
           
-          // If API fails and we don't have mock data already, show an error
-          if (!exam) {
-            throw new Error("Could not load exam data from API");
+          // If the API fails, try to extract ID from UUID format if possible
+          const numericId = examId.split('-')[4] || examId;
+          const cleanId = numericId.replace(/[^0-9]/g, '');
+          const mockId = `00000000-0000-0000-0000-00000000000${cleanId.slice(-1)}`;
+          
+          if (mockExams[mockId]) {
+            console.log("Falling back to mock data with ID:", mockId);
+            setExam(mockExams[mockId]);
+            setTests(mockTests[mockId] || []);
+          } else {
+            // Use the first mock exam as fallback
+            const firstMockId = Object.keys(mockExams)[0];
+            console.log("Using first available mock exam as fallback");
+            setExam(mockExams[firstMockId]);
+            setTests(mockTests[firstMockId] || []);
           }
         }
       } catch (error) {
         console.error('Failed to load exam data:', error);
         setError("Failed to load exam details. Please try again later.");
+        
+        // Ultimate fallback - use the first mock exam
+        const firstMockId = Object.keys(mockExams)[0];
+        console.log("Using first available mock exam as final fallback");
+        setExam(mockExams[firstMockId]);
+        setTests(mockTests[firstMockId] || []);
+        
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load exam details. Please try again later."
+          description: "Failed to load exam details, using demo data instead."
         });
       } finally {
         setIsLoading(false);
@@ -219,49 +229,74 @@ const ExamDetail = () => {
           </Button>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h1 className="text-3xl font-bold mb-2">{exam.title}</h1>
-          <div className="flex items-center gap-2 mb-4">
-            {exam.examType && (
-              <Badge variant="outline" className="bg-exam-blue/10 hover:bg-exam-blue/20 border-exam-blue/20 text-exam-blue">
-                {exam.examType}
-              </Badge>
-            )}
-          </div>
-          <p className="text-gray-600 mb-4">{exam.description}</p>
-        </div>
-
-        <section>
-          <h2 className="text-2xl font-bold mb-6">Available Tests</h2>
-          
-          {tests.length === 0 ? (
-            <div className="text-center p-8 bg-gray-50 rounded-lg">
-              No tests available for this exam yet.
-            </div>
-          ) : (
+        {isLoading ? (
+          <div>
+            <Skeleton className="h-12 w-3/4 mb-4" />
+            <Skeleton className="h-24 w-full mb-8" />
+            <Skeleton className="h-8 w-1/2 mb-6" />
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {tests.map((test) => (
-                <Card key={test.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <CardTitle>{test.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-500 mb-4">{test.description}</p>
-                    <div className="flex justify-between text-sm text-gray-500">
-                      <div>Duration: {test.duration} mins</div>
-                      <div>Questions: {test.totalQuestions}</div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button asChild className="w-full">
-                      <Link to={`/tests/${test.id}`}>Start Test</Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-48 w-full" />
               ))}
             </div>
-          )}
-        </section>
+          </div>
+        ) : exam ? (
+          <>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h1 className="text-3xl font-bold mb-2">{exam.title}</h1>
+              <div className="flex items-center gap-2 mb-4">
+                {exam.examType && (
+                  <Badge variant="outline" className="bg-exam-blue/10 hover:bg-exam-blue/20 border-exam-blue/20 text-exam-blue">
+                    {exam.examType}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-gray-600 mb-4">{exam.description}</p>
+            </div>
+
+            <section>
+              <h2 className="text-2xl font-bold mb-6">Available Tests</h2>
+              
+              {tests.length === 0 ? (
+                <div className="text-center p-8 bg-gray-50 rounded-lg">
+                  No tests available for this exam yet.
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {tests.map((test) => (
+                    <Card key={test.id} className="hover:shadow-md transition-shadow">
+                      <CardHeader>
+                        <CardTitle>{test.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-gray-500 mb-4">{test.description}</p>
+                        <div className="flex justify-between text-sm text-gray-500">
+                          <div>Duration: {test.duration} mins</div>
+                          <div>Questions: {test.totalQuestions}</div>
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        <Button asChild className="w-full">
+                          <Link to={`/tests/${test.id}`}>Start Test</Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        ) : (
+          <div className="text-center p-8">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">
+              {error || "Exam not found"}
+            </h2>
+            <p className="mb-6">The requested exam could not be found or loaded.</p>
+            <Button asChild>
+              <Link to="/">&larr; Back to exams</Link>
+            </Button>
+          </div>
+        )}
       </div>
     </MainLayout>
   );
