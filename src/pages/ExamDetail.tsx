@@ -55,7 +55,7 @@ const ExamDetail = () => {
     setConnectionError(false);
     setIsExamLoading(true);
     setIsTestsLoading(true);
-    setSectionsLoading(true);
+    setIsSectionsLoading(true);
     setIsResourcesLoading(true);
     loadExamData();
   };

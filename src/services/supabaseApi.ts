@@ -90,15 +90,18 @@ export const getExam = async (id: string) => {
 
 export const createExam = async (exam: Omit<Exam, 'id' | 'createdAt' | 'createdBy'>, userId: string) => {
   try {
+    // Convert from camelCase to snake_case for insertion
+    const examData = {
+      title: exam.title,
+      description: exam.description,
+      exam_type: exam.examType,
+      image_url: exam.imageUrl,
+      created_by: userId
+    };
+
     const { data, error } = await supabase
       .from('exams')
-      .insert({
-        title: exam.title,
-        description: exam.description,
-        exam_type: exam.examType,
-        image_url: exam.imageUrl,
-        created_by: userId
-      })
+      .insert(examData)
       .select()
       .single();
     

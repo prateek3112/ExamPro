@@ -32,16 +32,5 @@ export const supabase = createClient<Database>(
     db: {
       schema: 'public',
     },
-    // Added more resilient network settings
-    network: {
-      fetchOptions: {
-        cache: 'no-cache',
-        mode: 'cors',
-      },
-      retry: {
-        count: 3,
-        delay: 1000,
-      },
-    }
   }
 );
