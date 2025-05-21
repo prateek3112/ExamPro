@@ -8,18 +8,59 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/layouts/MainLayout';
 import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/components/ui/use-toast';
+
+// Fallback data in case API fails
+const fallbackExams: Exam[] = [
+  {
+    id: "00000000-0000-0000-0000-000000000001",
+    title: "Mathematics Exam",
+    description: "Test your knowledge of algebra, geometry, and calculus",
+    createdAt: new Date().toISOString(),
+    createdBy: "system",
+    imageUrl: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=2070&auto=format&fit=crop",
+    examType: "General",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000002",
+    title: "Science Exam",
+    description: "Physics, chemistry and biology concepts for high school students",
+    createdAt: new Date().toISOString(),
+    createdBy: "system",
+    imageUrl: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=2070&auto=format&fit=crop",
+    examType: "General",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000003",
+    title: "English Literature",
+    description: "Analyze literary works and demonstrate understanding of prose and poetry",
+    createdAt: new Date().toISOString(),
+    createdBy: "system",
+    imageUrl: "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=2074&auto=format&fit=crop",
+    examType: "General",
+  }
+];
 
 const Home = () => {
   const { isAuthenticated, user } = useAuth();
+  const { toast } = useToast();
   
   const { data: exams, isLoading, error } = useQuery({
     queryKey: ['exams'],
-    queryFn: getExams
+    queryFn: getExams,
+    retry: 1,
+    onError: (error) => {
+      console.error('Failed to load exams:', error);
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Unable to connect to the database. Using sample data instead."
+      });
+    },
   });
 
-  if (error) {
-    console.error('Failed to load exams:', error);
-  }
+  // Use fallback data if there's an error or no exams returned
+  const displayExams = error || !exams || exams.length === 0 ? fallbackExams : exams;
 
   return (
     <MainLayout>
@@ -39,7 +80,7 @@ const Home = () => {
                 <div className="text-center p-8">Loading exams...</div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {exams?.map((exam) => (
+                  {displayExams.map((exam) => (
                     <Card key={exam.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                       {exam.imageUrl && (
                         <div 
