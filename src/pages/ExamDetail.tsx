@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getExam, getTestsByExam } from '@/services/supabaseApi';
@@ -7,35 +8,36 @@ import { Button } from '@/components/ui/button';
 import MainLayout from '@/components/layouts/MainLayout';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 // Fallback data for mock exam IDs
 const mockExams: Record<string, Exam> = {
   "1": {
     id: "00000000-0000-0000-0000-000000000001",
-    title: "Mathematics Exam",
-    description: "Test your knowledge of algebra, geometry, and calculus",
+    title: "JEE Exam",
+    description: "Joint Entrance Examination for engineering college admissions",
     createdAt: new Date().toISOString(),
     createdBy: "system",
     imageUrl: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=2070&auto=format&fit=crop",
-    examType: "General",
+    examType: "JEE",
   },
   "2": {
     id: "00000000-0000-0000-0000-000000000002",
-    title: "Science Exam",
-    description: "Physics, chemistry and biology concepts for high school students",
+    title: "SSC Exam",
+    description: "Staff Selection Commission examination for government positions",
     createdAt: new Date().toISOString(),
     createdBy: "system",
     imageUrl: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=2070&auto=format&fit=crop",
-    examType: "General",
+    examType: "SSC",
   },
   "3": {
     id: "00000000-0000-0000-0000-000000000003",
-    title: "English Literature",
-    description: "Analyze literary works and demonstrate understanding of prose and poetry",
+    title: "NEET Exam",
+    description: "National Eligibility cum Entrance Test for medical admissions",
     createdAt: new Date().toISOString(),
     createdBy: "system",
     imageUrl: "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=2074&auto=format&fit=crop",
-    examType: "General",
+    examType: "NEET",
   }
 };
 
@@ -44,8 +46,8 @@ const mockTests: Record<string, Test[]> = {
   "1": [
     {
       id: "t-00001",
-      title: "Algebra Test",
-      description: "Test your knowledge of algebraic equations and expressions",
+      title: "JEE Maths Test",
+      description: "Test your knowledge of mathematical concepts for JEE",
       examId: "00000000-0000-0000-0000-000000000001",
       duration: 60,
       totalQuestions: 20,
@@ -54,8 +56,8 @@ const mockTests: Record<string, Test[]> = {
     },
     {
       id: "t-00002",
-      title: "Geometry Test",
-      description: "Test your knowledge of geometric principles and theorems",
+      title: "JEE Physics Test",
+      description: "Test your knowledge of physics principles and problem solving",
       examId: "00000000-0000-0000-0000-000000000001",
       duration: 45,
       totalQuestions: 15,
@@ -66,8 +68,8 @@ const mockTests: Record<string, Test[]> = {
   "2": [
     {
       id: "t-00003",
-      title: "Physics Test",
-      description: "Test your knowledge of basic physics principles",
+      title: "SSC English Test",
+      description: "Test your knowledge of grammar and vocabulary",
       examId: "00000000-0000-0000-0000-000000000002",
       duration: 60,
       totalQuestions: 25,
@@ -76,8 +78,8 @@ const mockTests: Record<string, Test[]> = {
     },
     {
       id: "t-00004",
-      title: "Chemistry Test",
-      description: "Test your knowledge of chemical reactions and elements",
+      title: "SSC General Knowledge Test",
+      description: "Test your knowledge of current affairs and general knowledge",
       examId: "00000000-0000-0000-0000-000000000002",
       duration: 50,
       totalQuestions: 20,
@@ -88,8 +90,8 @@ const mockTests: Record<string, Test[]> = {
   "3": [
     {
       id: "t-00005",
-      title: "Literature Analysis",
-      description: "Analyze and interpret literature passages",
+      title: "NEET Biology Test",
+      description: "Analyze your understanding of biological concepts and systems",
       examId: "00000000-0000-0000-0000-000000000003",
       duration: 90,
       totalQuestions: 10,
@@ -121,7 +123,7 @@ const ExamDetail = () => {
         if (examId.startsWith('00000000') || ["1", "2", "3"].includes(examId)) {
           // Extract the numeric part from the UUID or use the ID directly
           const numericId = examId.startsWith('00000000') 
-            ? examId.split('-').pop() || examId
+            ? examId.split('-')[4] || examId
             : examId;
           
           console.log("Using mock data for exam ID:", numericId);
@@ -219,6 +221,13 @@ const ExamDetail = () => {
         
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h1 className="text-3xl font-bold mb-2">{exam.title}</h1>
+          <div className="flex items-center gap-2 mb-4">
+            {exam.examType && (
+              <Badge variant="outline" className="bg-exam-blue/10 hover:bg-exam-blue/20 border-exam-blue/20 text-exam-blue">
+                {exam.examType}
+              </Badge>
+            )}
+          </div>
           <p className="text-gray-600 mb-4">{exam.description}</p>
         </div>
 

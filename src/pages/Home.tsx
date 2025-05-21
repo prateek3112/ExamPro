@@ -14,30 +14,30 @@ import { useToast } from '@/components/ui/use-toast';
 const fallbackExams: Exam[] = [
   {
     id: "00000000-0000-0000-0000-000000000001",
-    title: "Mathematics Exam",
-    description: "Test your knowledge of algebra, geometry, and calculus",
+    title: "JEE Exam",
+    description: "Joint Entrance Examination for engineering college admissions",
     createdAt: new Date().toISOString(),
     createdBy: "system",
     imageUrl: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=2070&auto=format&fit=crop",
-    examType: "General",
+    examType: "JEE",
   },
   {
     id: "00000000-0000-0000-0000-000000000002",
-    title: "Science Exam",
-    description: "Physics, chemistry and biology concepts for high school students",
+    title: "SSC Exam",
+    description: "Staff Selection Commission examination for government positions",
     createdAt: new Date().toISOString(),
     createdBy: "system",
     imageUrl: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=2070&auto=format&fit=crop",
-    examType: "General",
+    examType: "SSC",
   },
   {
     id: "00000000-0000-0000-0000-000000000003",
-    title: "English Literature",
-    description: "Analyze literary works and demonstrate understanding of prose and poetry",
+    title: "NEET Exam",
+    description: "National Eligibility cum Entrance Test for medical admissions",
     createdAt: new Date().toISOString(),
     createdBy: "system",
     imageUrl: "https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=2074&auto=format&fit=crop",
-    examType: "General",
+    examType: "NEET",
   }
 ];
 
@@ -49,14 +49,16 @@ const Home = () => {
     queryKey: ['exams'],
     queryFn: getExams,
     retry: 1,
-    onError: (error) => {
-      console.error('Failed to load exams:', error);
-      toast({
-        variant: "destructive",
-        title: "Connection Error",
-        description: "Unable to connect to the database. Using sample data instead."
-      });
-    },
+    meta: {
+      onError: (error: any) => {
+        console.error('Failed to load exams:', error);
+        toast({
+          variant: "destructive",
+          title: "Connection Error",
+          description: "Unable to connect to the database. Using sample data instead."
+        });
+      },
+    }
   });
 
   // Use fallback data if there's an error or no exams returned
@@ -91,8 +93,13 @@ const Home = () => {
                       <CardHeader>
                         <CardTitle>{exam.title}</CardTitle>
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className="space-y-2">
                         <p className="text-gray-500">{exam.description}</p>
+                        {exam.examType && (
+                          <div className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-exam-blue/10 text-exam-blue">
+                            {exam.examType}
+                          </div>
+                        )}
                       </CardContent>
                       <CardFooter>
                         <Button asChild className="w-full">

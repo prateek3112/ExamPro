@@ -13,16 +13,22 @@ import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/layouts/MainLayout';
 import { Loader, AlertCircle, Clock, BookOpen } from 'lucide-react';
 
-// Define mock sections data since it's not available on window
+// Define mock sections data
 const mockSections: Record<string, QuestionSection[]> = {
-  "1": [
-    { id: "s1", title: "Mathematics", description: "Algebra, Calculus and Geometry", questionCount: 20 },
+  "00000000-0000-0000-0000-000000000001": [
+    { id: "s1", title: "Mathematics", description: "Algebra, Calculus and Coordinate Geometry", questionCount: 20 },
     { id: "s2", title: "Physics", description: "Mechanics, Thermodynamics and Electromagnetism", questionCount: 15 },
     { id: "s3", title: "Chemistry", description: "Organic and Inorganic chemistry", questionCount: 15 }
   ],
-  "2": [
-    { id: "s4", title: "Verbal", description: "Reading comprehension and vocabulary", questionCount: 20 },
-    { id: "s5", title: "Quantitative", description: "Problem solving and data analysis", questionCount: 20 }
+  "00000000-0000-0000-0000-000000000002": [
+    { id: "s4", title: "Verbal", description: "English Grammar and Comprehension", questionCount: 20 },
+    { id: "s5", title: "Quantitative", description: "Numerical Ability and Reasoning", questionCount: 20 },
+    { id: "s6", title: "General Knowledge", description: "Current Affairs and General Awareness", questionCount: 10 }
+  ],
+  "00000000-0000-0000-0000-000000000003": [
+    { id: "s7", title: "Biology", description: "Zoology and Botany", questionCount: 20 },
+    { id: "s8", title: "Physics", description: "Mechanics and Modern Physics", questionCount: 15 },
+    { id: "s9", title: "Chemistry", description: "Organic and Physical Chemistry", questionCount: 15 }
   ]
 };
 
@@ -47,12 +53,15 @@ const TestDetail = () => {
         setIsLoading(true);
         setHasError(false);
         
+        console.log("Fetching test with ID:", testId);
         const testData = await getTestApi(testId);
         setTest(testData);
         
+        console.log("Fetching exam with ID:", testData.examId);
         const examData = await getExamApi(testData.examId);
         setExam(examData);
         
+        console.log("Fetching questions for test:", testId);
         const questionsData = await getQuestionsByTestApi(testId);
         setQuestions(questionsData);
         
@@ -64,10 +73,12 @@ const TestDetail = () => {
           if (q.sectionId) uniqueSectionIds.add(q.sectionId);
         });
         
-        // Get section data from our mock data instead of window.sections
+        // Get section data from our mock data
         if (examData) {
-          // Use mock data instead of window.sections
+          // Get the correct sections for this exam
           const examSections = mockSections[examData.id] || [];
+          console.log("Found sections for exam:", examSections.length);
+          
           examSections.forEach(section => {
             sectionMap.set(section.id, {
               ...section,
@@ -137,6 +148,11 @@ const TestDetail = () => {
       return;
     }
     
+    // Navigate to test taking page with selected sections info
+    toast({
+      title: "Test Started",
+      description: `Starting test with ${selectedSections.length} selected sections.`,
+    });
     navigate(`/tests/${testId}/take`, { state: { selectedSections } });
   };
 
@@ -158,7 +174,7 @@ const TestDetail = () => {
           <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
           <h2 className="text-2xl font-bold mb-2">Error loading test</h2>
           <p className="mb-4">There was a problem loading the test details. Please try again later.</p>
-          <Button onClick={() => navigate('/exams')}>
+          <Button onClick={() => navigate('/')}>
             Back to Exams
           </Button>
         </div>
@@ -181,7 +197,10 @@ const TestDetail = () => {
           <div>
             <h1 className="text-3xl font-bold">{test.title}</h1>
             <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline">{exam.title}</Badge>
+              <Badge variant="outline" className="bg-exam-blue/10 hover:bg-exam-blue/20 border-exam-blue/20 text-exam-blue">{exam.title}</Badge>
+              {exam.examType && (
+                <Badge variant="outline" className="bg-exam-blue/10 hover:bg-exam-blue/20 border-exam-blue/20 text-exam-blue">{exam.examType}</Badge>
+              )}
               <Badge variant="outline">{questions.length} Questions</Badge>
               <Badge variant="outline">{test.duration} Minutes</Badge>
             </div>
@@ -232,26 +251,30 @@ const TestDetail = () => {
             </div>
             <Separator className="my-4" />
             <div className="space-y-4">
-              {sections.map((section) => (
-                <div key={section.id} className="flex items-start space-x-2">
-                  <Checkbox 
-                    id={section.id} 
-                    checked={selectedSections.includes(section.id)}
-                    onCheckedChange={(checked) => handleSectionToggle(section.id, checked as boolean)}
-                  />
-                  <div className="grid gap-1.5 leading-none">
-                    <label
-                      htmlFor={section.id}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {section.title} <span className="text-gray-500">({section.questionCount} questions)</span>
-                    </label>
-                    {section.description && (
-                      <p className="text-sm text-gray-500">{section.description}</p>
-                    )}
+              {sections.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No sections available for this test.</p>
+              ) : (
+                sections.map((section) => (
+                  <div key={section.id} className="flex items-start space-x-2">
+                    <Checkbox 
+                      id={section.id} 
+                      checked={selectedSections.includes(section.id)}
+                      onCheckedChange={(checked) => handleSectionToggle(section.id, checked as boolean)}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <label
+                        htmlFor={section.id}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {section.title} <span className="text-gray-500">({section.questionCount} questions)</span>
+                      </label>
+                      {section.description && (
+                        <p className="text-sm text-gray-500">{section.description}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
           <CardFooter>

@@ -1,446 +1,171 @@
 
-import { User, Exam, Test, Question, TestAttempt, UserRole, Answer, QuestionSection } from '../types';
+import { Exam, Question, QuestionSection, Test } from '@/types';
 
-// Mock data
-const users: User[] = [
-  {
-    id: '1',
-    email: 'student@example.com',
-    name: 'John Student',
-    role: 'student',
-    createdAt: '2023-01-01T00:00:00Z',
-  },
-  {
-    id: '2',
-    email: 'admin@example.com',
-    name: 'Admin User',
-    role: 'admin',
-    createdAt: '2023-01-01T00:00:00Z',
-  },
-];
-
-const exams: Exam[] = [
-  {
-    id: '1',
-    title: 'SSC CGL',
-    description: 'Staff Selection Commission Combined Graduate Level examination for various government posts',
-    createdAt: '2023-01-10T00:00:00Z',
-    createdBy: '2',
-    examType: 'Government',
-    imageUrl: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=500',
-  },
-  {
-    id: '2',
-    title: 'JEE Main',
-    description: 'Joint Entrance Examination for admission to engineering colleges across India',
-    createdAt: '2023-01-15T00:00:00Z',
-    createdBy: '2',
-    examType: 'Engineering',
-    imageUrl: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?q=80&w=500',
-  },
-  {
-    id: '3',
-    title: 'UPSC CSE',
-    description: 'Civil Services Examination for recruitment to various Civil Services of the Government of India',
-    createdAt: '2023-01-20T00:00:00Z',
-    createdBy: '2',
-    examType: 'Civil Services',
-    imageUrl: 'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?q=80&w=500',
-  },
-];
-
-// Define sections with question counts
-const sections: Record<string, QuestionSection[]> = {
-  '1': [
-    { id: 's1', title: 'General Intelligence & Reasoning', description: 'Questions on analogies, similarities, differences, spatial visualization, problem solving, analysis, decision making, etc.', questionCount: 25 },
-    { id: 's2', title: 'General Awareness', description: 'Questions on current events, sports, history, geography, economic scene, general politics, Indian Constitution, etc.', questionCount: 25 },
-    { id: 's3', title: 'Quantitative Aptitude', description: 'Questions on arithmetic, algebra, geometry, trigonometry, statistics, etc.', questionCount: 25 },
-    { id: 's4', title: 'English Comprehension', description: 'Questions on understanding of English language, vocabulary, grammar, etc.', questionCount: 25 }
-  ],
-  '2': [
-    { id: 's5', title: 'Physics', description: 'Questions on mechanics, thermodynamics, optics, electromagnetism, modern physics, etc.', questionCount: 30 },
-    { id: 's6', title: 'Chemistry', description: 'Questions on physical, organic, and inorganic chemistry, etc.', questionCount: 30 },
-    { id: 's7', title: 'Mathematics', description: 'Questions on algebra, calculus, coordinate geometry, etc.', questionCount: 30 }
-  ],
-  '3': [
-    { id: 's8', title: 'General Studies Paper I', description: 'Questions on Indian history, geography, society, environment, etc.', questionCount: 35 },
-    { id: 's9', title: 'General Studies Paper II', description: 'Questions on governance, constitution, polity, social justice, international relations, etc.', questionCount: 35 },
-    { id: 's10', title: 'General Studies Paper III', description: 'Questions on technology, economic development, biodiversity, security, disaster management, etc.', questionCount: 35 },
-    { id: 's11', title: 'General Studies Paper IV', description: 'Questions on ethics, integrity, aptitude, etc.', questionCount: 35 }
-  ]
-};
-
-const tests: Test[] = [
-  {
-    id: '1',
-    title: 'SSC CGL Tier I Mock Test',
-    description: 'Practice test for SSC CGL Tier I examination covering all four sections',
-    examId: '1',
+// Mock data for tests
+const mockTests: Record<string, Test> = {
+  't-00001': {
+    id: 't-00001',
+    title: 'JEE Maths Test',
+    description: 'Test your knowledge of mathematical concepts for JEE',
+    examId: '00000000-0000-0000-0000-000000000001',
     duration: 60,
-    totalQuestions: 100,
-    createdAt: '2023-01-12T00:00:00Z',
-    createdBy: '2',
-  },
-  {
-    id: '2',
-    title: 'JEE Main Mock Test',
-    description: 'Practice test for JEE Main covering Physics, Chemistry, and Mathematics',
-    examId: '2',
-    duration: 180,
-    totalQuestions: 90,
-    createdAt: '2023-01-14T00:00:00Z',
-    createdBy: '2',
-  },
-  {
-    id: '3',
-    title: 'UPSC CSE Prelims Mock Test',
-    description: 'Practice test for UPSC CSE Prelims covering all sections',
-    examId: '3',
-    duration: 120,
-    totalQuestions: 140,
-    createdAt: '2023-01-16T00:00:00Z',
-    createdBy: '2',
-  },
-];
-
-// Generate 100 sample questions for SSC CGL test (25 per section)
-const generateSscQuestions = () => {
-  const questions: Question[] = [];
-  
-  // Reasoning questions (s1)
-  for (let i = 1; i <= 25; i++) {
-    questions.push({
-      id: `q${i}`,
-      testId: '1',
-      text: `Reasoning Question ${i}: If A is related to B in the same way as C is related to D, then how is E related to F?`,
-      options: ['Option A', 'Option B', 'Option C', 'Option D'],
-      correctOption: i % 4,
-      sectionId: 's1'
-    });
-  }
-  
-  // General Awareness questions (s2)
-  for (let i = 26; i <= 50; i++) {
-    questions.push({
-      id: `q${i}`,
-      testId: '1',
-      text: `General Awareness Question ${i-25}: Who is the current Prime Minister of India?`,
-      options: ['Narendra Modi', 'Rahul Gandhi', 'Amit Shah', 'Rajnath Singh'],
-      correctOption: 0,
-      sectionId: 's2'
-    });
-  }
-  
-  // Quantitative Aptitude questions (s3)
-  for (let i = 51; i <= 75; i++) {
-    questions.push({
-      id: `q${i}`,
-      testId: '1',
-      text: `Quantitative Aptitude Question ${i-50}: If the simple interest on a sum for 2 years at 5% per annum is ₹50, what is the principal amount?`,
-      options: ['₹400', '₹500', '₹600', '₹700'],
-      correctOption: 1,
-      sectionId: 's3'
-    });
-  }
-  
-  // English Comprehension questions (s4)
-  for (let i = 76; i <= 100; i++) {
-    questions.push({
-      id: `q${i}`,
-      testId: '1',
-      text: `English Comprehension Question ${i-75}: Choose the word which is most opposite in meaning to the given word: FRUGAL`,
-      options: ['Economical', 'Extravagant', 'Miserly', 'Thrifty'],
-      correctOption: 1,
-      sectionId: 's4'
-    });
-  }
-  
-  return questions;
-};
-
-// Generate questions for JEE Main test (30 per section)
-const generateJeeQuestions = () => {
-  const questions: Question[] = [];
-  
-  // Physics questions (s5)
-  for (let i = 1; i <= 30; i++) {
-    questions.push({
-      id: `jq${i}`,
-      testId: '2',
-      text: `Physics Question ${i}: A ball is thrown vertically upward with a velocity of 20 m/s. What will be its velocity after 2 seconds?`,
-      options: ['0 m/s', '0.2 m/s', '-0.2 m/s', '2 m/s'],
-      correctOption: 2,
-      sectionId: 's5'
-    });
-  }
-  
-  // Chemistry questions (s6)
-  for (let i = 31; i <= 60; i++) {
-    questions.push({
-      id: `jq${i}`,
-      testId: '2',
-      text: `Chemistry Question ${i-30}: What is the pH of a neutral solution at 25°C?`,
-      options: ['0', '7', '14', '1'],
-      correctOption: 1,
-      sectionId: 's6'
-    });
-  }
-  
-  // Mathematics questions (s7)
-  for (let i = 61; i <= 90; i++) {
-    questions.push({
-      id: `jq${i}`,
-      testId: '2',
-      text: `Mathematics Question ${i-60}: If f(x) = x² and g(x) = 2x + 1, what is (f ∘ g)(2)?`,
-      options: ['25', '9', '5', '36'],
-      correctOption: 0,
-      sectionId: 's7'
-    });
-  }
-  
-  return questions;
-};
-
-// Initialize questions for all tests
-const questions: Record<string, Question[]> = {
-  '1': generateSscQuestions(),
-  '2': generateJeeQuestions(),
-  // Other tests can be initialized as needed
-};
-
-const testAttempts: TestAttempt[] = [];
-
-// Simulated API functions with delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Auth API
-export const loginApi = async (email: string, password: string) => {
-  await delay(1000);
-  const user = users.find(u => u.email === email);
-  if (!user || password !== 'password') {
-    throw new Error('Invalid credentials');
-  }
-  return {
-    user,
-    token: 'mock-jwt-token',
-  };
-};
-
-export const registerApi = async (name: string, email: string, password: string) => {
-  await delay(1000);
-  if (users.some(u => u.email === email)) {
-    throw new Error('Email already in use');
-  }
-  const newUser: User = {
-    id: (users.length + 1).toString(),
-    email,
-    name,
-    role: 'student',
+    totalQuestions: 20,
     createdAt: new Date().toISOString(),
-  };
-  users.push(newUser);
-  return {
-    user: newUser,
-    token: 'mock-jwt-token',
-  };
-};
-
-// Exams API
-export const getExamsApi = async () => {
-  await delay(300);
-  return exams;
-};
-
-export const getExamApi = async (id: string) => {
-  await delay(300);
-  const exam = exams.find(e => e.id === id);
-  if (!exam) {
-    throw new Error('Exam not found');
-  }
-  return exam;
-};
-
-export const createExamApi = async (exam: Omit<Exam, 'id' | 'createdAt' | 'createdBy'>, userId: string) => {
-  await delay(1000);
-  const newExam: Exam = {
-    ...exam,
-    id: (exams.length + 1).toString(),
+    createdBy: 'system'
+  },
+  't-00002': {
+    id: 't-00002',
+    title: 'JEE Physics Test',
+    description: 'Test your knowledge of physics principles and problem solving',
+    examId: '00000000-0000-0000-0000-000000000001',
+    duration: 45,
+    totalQuestions: 15,
     createdAt: new Date().toISOString(),
-    createdBy: userId,
-  };
-  exams.push(newExam);
-  return newExam;
-};
-
-// Tests API
-export const getTestsByExamApi = async (examId: string) => {
-  await delay(300);
-  return tests.filter(t => t.examId === examId);
-};
-
-export const getTestApi = async (id: string) => {
-  await delay(300);
-  const test = tests.find(t => t.id === id);
-  if (!test) {
-    throw new Error('Test not found');
-  }
-  return test;
-};
-
-export const createTestApi = async (test: Omit<Test, 'id' | 'createdAt' | 'createdBy'>, userId: string) => {
-  await delay(1000);
-  const newTest: Test = {
-    ...test,
-    id: (tests.length + 1).toString(),
+    createdBy: 'system'
+  },
+  't-00003': {
+    id: 't-00003',
+    title: 'SSC English Test',
+    description: 'Test your knowledge of grammar and vocabulary',
+    examId: '00000000-0000-0000-0000-000000000002',
+    duration: 60,
+    totalQuestions: 25,
     createdAt: new Date().toISOString(),
-    createdBy: userId,
-  };
-  tests.push(newTest);
-  return newTest;
+    createdBy: 'system'
+  },
+  't-00004': {
+    id: 't-00004',
+    title: 'SSC General Knowledge Test',
+    description: 'Test your knowledge of current affairs and general knowledge',
+    examId: '00000000-0000-0000-0000-000000000002',
+    duration: 50,
+    totalQuestions: 20,
+    createdAt: new Date().toISOString(),
+    createdBy: 'system'
+  },
+  't-00005': {
+    id: 't-00005',
+    title: 'NEET Biology Test',
+    description: 'Analyze your understanding of biological concepts and systems',
+    examId: '00000000-0000-0000-0000-000000000003',
+    duration: 90,
+    totalQuestions: 10,
+    createdAt: new Date().toISOString(),
+    createdBy: 'system'
+  }
 };
 
-// Questions API
-export const getQuestionsByTestApi = async (testId: string) => {
-  await delay(300);
-  console.log(`Getting questions for test ${testId}, count: ${questions[testId]?.length || 0}`);
-  return questions[testId] || [];
+// Mock data for exams
+const mockExams: Record<string, Exam> = {
+  '00000000-0000-0000-0000-000000000001': {
+    id: '00000000-0000-0000-0000-000000000001',
+    title: 'JEE Exam',
+    description: 'Joint Entrance Examination for engineering college admissions',
+    createdAt: new Date().toISOString(),
+    createdBy: 'system',
+    imageUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=2070&auto=format&fit=crop',
+    examType: 'JEE'
+  },
+  '00000000-0000-0000-0000-000000000002': {
+    id: '00000000-0000-0000-0000-000000000002',
+    title: 'SSC Exam',
+    description: 'Staff Selection Commission examination for government positions',
+    createdAt: new Date().toISOString(),
+    createdBy: 'system',
+    imageUrl: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=2070&auto=format&fit=crop',
+    examType: 'SSC'
+  },
+  '00000000-0000-0000-0000-000000000003': {
+    id: '00000000-0000-0000-0000-000000000003',
+    title: 'NEET Exam',
+    description: 'National Eligibility cum Entrance Test for medical admissions',
+    createdAt: new Date().toISOString(),
+    createdBy: 'system',
+    imageUrl: 'https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=2074&auto=format&fit=crop',
+    examType: 'NEET'
+  }
 };
 
-export const createQuestionApi = async (question: Omit<Question, 'id'>) => {
-  await delay(1000);
-  const testQuestions = questions[question.testId] || [];
-  const newQuestion: Question = {
-    ...question,
-    id: (testQuestions.length + 1).toString(),
-  };
-  
-  if (!questions[question.testId]) {
-    questions[question.testId] = [];
-  }
-  
-  questions[question.testId].push(newQuestion);
-  return newQuestion;
+// Mock questions for tests
+const mockQuestions: Record<string, Question[]> = {
+  't-00001': Array.from({ length: 20 }, (_, i) => ({
+    id: `q-00001-${i+1}`,
+    testId: 't-00001',
+    text: `JEE Mathematics Question ${i+1}`,
+    options: [`Option A for question ${i+1}`, `Option B for question ${i+1}`, `Option C for question ${i+1}`, `Option D for question ${i+1}`],
+    correctOption: Math.floor(Math.random() * 4),
+    sectionId: 's1'
+  })),
+  't-00002': Array.from({ length: 15 }, (_, i) => ({
+    id: `q-00002-${i+1}`,
+    testId: 't-00002',
+    text: `JEE Physics Question ${i+1}`,
+    options: [`Option A for question ${i+1}`, `Option B for question ${i+1}`, `Option C for question ${i+1}`, `Option D for question ${i+1}`],
+    correctOption: Math.floor(Math.random() * 4),
+    sectionId: 's2'
+  })),
+  't-00003': Array.from({ length: 25 }, (_, i) => ({
+    id: `q-00003-${i+1}`,
+    testId: 't-00003',
+    text: `SSC English Question ${i+1}`,
+    options: [`Option A for question ${i+1}`, `Option B for question ${i+1}`, `Option C for question ${i+1}`, `Option D for question ${i+1}`],
+    correctOption: Math.floor(Math.random() * 4),
+    sectionId: 's4'
+  })),
+  't-00004': Array.from({ length: 20 }, (_, i) => ({
+    id: `q-00004-${i+1}`,
+    testId: 't-00004',
+    text: `SSC General Knowledge Question ${i+1}`,
+    options: [`Option A for question ${i+1}`, `Option B for question ${i+1}`, `Option C for question ${i+1}`, `Option D for question ${i+1}`],
+    correctOption: Math.floor(Math.random() * 4),
+    sectionId: 's5'
+  })),
+  't-00005': Array.from({ length: 10 }, (_, i) => ({
+    id: `q-00005-${i+1}`,
+    testId: 't-00005',
+    text: `NEET Biology Question ${i+1}`,
+    options: [`Option A for question ${i+1}`, `Option B for question ${i+1}`, `Option C for question ${i+1}`, `Option D for question ${i+1}`],
+    correctOption: Math.floor(Math.random() * 4),
+    sectionId: 's3'
+  }))
 };
 
-// Test attempts API
-export const startTestAttemptApi = async (testId: string, userId: string, selectedSections?: string[]) => {
-  await delay(500);
-  const test = tests.find(t => t.id === testId);
-  if (!test) {
-    throw new Error('Test not found');
+// API functions
+export const getTestApi = async (testId: string): Promise<Test> => {
+  console.log('Fetching test with ID:', testId);
+
+  // Check if test exists in mock data
+  if (testId.startsWith('t-') && mockTests[testId]) {
+    console.log('Using mock data for test');
+    return mockTests[testId];
   }
-  
-  const testQuestions = questions[testId] || [];
-  const testSections = sections[test.examId] || [];
-  
-  console.log("API Debug - All Questions Count:", testQuestions.length);
-  console.log("API Debug - All Sections:", testSections);
-  console.log("API Debug - Selected Sections:", selectedSections);
-  
-  // Filter questions by selected sections if applicable
-  let filteredQuestions = [...testQuestions]; // Make a copy to avoid reference issues
-  if (selectedSections && selectedSections.length > 0) {
-    filteredQuestions = testQuestions.filter(q => q.sectionId && selectedSections.includes(q.sectionId));
-    console.log("API Debug - Filtered Questions Count:", filteredQuestions.length);
-  }
-  
-  // If no questions were filtered (maybe because sectionId is missing), use all questions
-  if (filteredQuestions.length === 0) {
-    filteredQuestions = [...testQuestions];
-    console.log("API Debug - Using all questions instead:", filteredQuestions.length);
-  }
-  
-  // Filter sections by selected sections if applicable
-  let filteredSections = [...testSections]; // Make a copy to avoid reference issues
-  if (selectedSections && selectedSections.length > 0) {
-    filteredSections = testSections.filter(s => selectedSections.includes(s.id));
-    console.log("API Debug - Filtered Sections:", filteredSections);
-  }
-  
-  const newAttempt: TestAttempt = {
-    id: (testAttempts.length + 1).toString(),
-    testId,
-    userId,
-    startedAt: new Date().toISOString(),
-    score: 0,
-    totalQuestions: filteredQuestions.length,
-    answers: [],
-    selectedSections
-  };
-  
-  testAttempts.push(newAttempt);
-  
-  return {
-    attempt: newAttempt,
-    questions: filteredQuestions,
-    sections: filteredSections,
-    test
-  };
+
+  // For tests not found in mock data
+  throw new Error('Test not found');
 };
 
-export const submitTestAttemptApi = async (attemptId: string, answers: Answer[]) => {
-  await delay(1000);
-  console.log("Submitting attempt:", attemptId);
-  console.log("Answers being submitted:", answers);
-  console.log("Total answers:", answers.length);
-  
-  const attemptIndex = testAttempts.findIndex(a => a.id === attemptId);
-  if (attemptIndex === -1) {
-    console.error("Attempt not found:", attemptId);
-    throw new Error('Test attempt not found');
+export const getQuestionsByTestApi = async (testId: string): Promise<Question[]> => {
+  console.log('Fetching questions for test ID:', testId);
+
+  // Check if questions exist in mock data
+  if (testId.startsWith('t-') && mockQuestions[testId]) {
+    console.log('Using mock questions data');
+    return mockQuestions[testId];
   }
-  
-  const attempt = testAttempts[attemptIndex];
-  
-  // Calculate score
-  const score = answers.filter(a => a.isCorrect).length;
-  
-  const updatedAttempt: TestAttempt = {
-    ...attempt,
-    completedAt: new Date().toISOString(),
-    score,
-    answers,
-  };
-  
-  testAttempts[attemptIndex] = updatedAttempt;
-  console.log("Updated attempt:", updatedAttempt);
-  
-  return updatedAttempt;
+
+  // For tests not found in mock data
+  return [];
 };
 
-export const getTestAttemptsApi = async (userId: string) => {
-  await delay(500);
-  return testAttempts.filter(a => a.userId === userId);
-};
+export const getExamApi = async (examId: string): Promise<Exam> => {
+  console.log('Fetching exam with ID:', examId);
 
-export const getTestAttemptApi = async (attemptId: string) => {
-  await delay(500);
-  const attempt = testAttempts.find(a => a.id === attemptId);
-  if (!attempt) {
-    throw new Error('Test attempt not found');
+  // Check if exam exists in mock data
+  if (mockExams[examId]) {
+    console.log('Using mock data for exam');
+    return mockExams[examId];
   }
-  
-  const test = tests.find(t => t.id === attempt.testId);
-  if (!test) {
-    throw new Error('Test not found');
-  }
-  
-  const exam = exams.find(e => e.id === test.examId);
-  if (!exam) {
-    throw new Error('Exam not found');
-  }
-  
-  const testQuestions = questions[attempt.testId] || [];
-  
-  // Filter questions by selected sections if applicable
-  const filteredQuestions = attempt.selectedSections && attempt.selectedSections.length > 0
-    ? testQuestions.filter(q => q.sectionId && attempt.selectedSections?.includes(q.sectionId))
-    : testQuestions;
-  
-  return {
-    attempt,
-    test,
-    exam,
-    questions: filteredQuestions,
-  };
+
+  // For exams not found in mock data
+  throw new Error('Exam not found');
 };
