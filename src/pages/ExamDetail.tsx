@@ -7,12 +7,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import MainLayout from '@/components/layouts/MainLayout';
 import { useToast } from '@/components/ui/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ExamDetail = () => {
   const { examId } = useParams<{ examId: string }>();
   const [exam, setExam] = useState<Exam | null>(null);
   const [tests, setTests] = useState<Test[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -21,7 +23,28 @@ const ExamDetail = () => {
       
       try {
         setIsLoading(true);
+        setError(null);
+        
         console.log("Fetching exam with ID:", examId);
+        
+        // For testing only - if using mock ID format, switch to API service
+        if (examId.startsWith('00000000')) {
+          // Extract the numeric part from the UUID
+          const numericId = examId.split('-').pop();
+          console.log("Using mock API for exam ID:", numericId);
+          
+          // Import dynamically to avoid circular dependencies
+          const { getExamApi, getTestsByExamApi } = await import('@/services/api');
+          
+          const examData = await getExamApi(numericId || '1');
+          const testsData = await getTestsByExamApi(numericId || '1');
+          
+          setExam(examData);
+          setTests(testsData);
+          return;
+        }
+        
+        // Use Supabase API
         const examData = await getExam(examId);
         console.log("Exam data retrieved:", examData);
         
@@ -32,6 +55,7 @@ const ExamDetail = () => {
         setTests(testsData);
       } catch (error) {
         console.error('Failed to load exam data:', error);
+        setError("Failed to load exam details. Please try again later.");
         toast({
           variant: "destructive",
           title: "Error",
@@ -48,15 +72,34 @@ const ExamDetail = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="text-center p-8">Loading...</div>
+        <div className="space-y-6">
+          <Skeleton className="h-12 w-3/4" />
+          <Skeleton className="h-24 w-full" />
+          <div>
+            <Skeleton className="h-8 w-1/2 mb-6" />
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-48 w-full" />
+              ))}
+            </div>
+          </div>
+        </div>
       </MainLayout>
     );
   }
 
-  if (!exam) {
+  if (error || !exam) {
     return (
       <MainLayout>
-        <div className="text-center p-8">Exam not found</div>
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">
+            {error || "Exam not found"}
+          </h2>
+          <p className="mb-6">The requested exam could not be found or loaded.</p>
+          <Button asChild>
+            <Link to="/">&larr; Back to exams</Link>
+          </Button>
+        </div>
       </MainLayout>
     );
   }

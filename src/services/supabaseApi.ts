@@ -1,26 +1,59 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User, Exam, Test, Question, TestAttempt, Answer, QuestionSection } from '../types';
 
 // Exams API
 export const getExams = async () => {
-  const { data, error } = await supabase
-    .from('exams')
-    .select('*');
-  
-  if (error) throw error;
-  return data as unknown as Exam[];
+  try {
+    console.log("Fetching all exams");
+    const { data, error } = await supabase
+      .from('exams')
+      .select('*');
+    
+    if (error) {
+      console.error("Error fetching exams:", error);
+      throw error;
+    }
+    
+    console.log("Exams retrieved successfully:", data);
+    return data as unknown as Exam[];
+  } catch (error) {
+    console.error("Exception in getExams:", error);
+    throw error;
+  }
 };
 
 export const getExam = async (id: string) => {
-  const { data, error } = await supabase
-    .from('exams')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error) throw error;
-  return data as unknown as Exam;
+  try {
+    console.log("Fetching exam with ID:", id);
+    
+    // Validate ID format
+    if (!id || id === "undefined" || id === "null") {
+      console.error("Invalid exam ID:", id);
+      throw new Error(`Invalid exam ID: ${id}`);
+    }
+    
+    const { data, error } = await supabase
+      .from('exams')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching exam:", error);
+      throw error;
+    }
+    
+    if (!data) {
+      console.error("No exam found with ID:", id);
+      throw new Error(`Exam not found with ID: ${id}`);
+    }
+    
+    console.log("Exam retrieved successfully:", data);
+    return data as unknown as Exam;
+  } catch (error) {
+    console.error("Exception in getExam:", error);
+    throw error;
+  }
 };
 
 export const createExam = async (exam: Omit<Exam, 'id' | 'createdAt' | 'createdBy'>, userId: string) => {
