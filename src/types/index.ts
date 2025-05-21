@@ -20,6 +20,24 @@ export interface Exam {
     examType: string;
 }
 
+export interface ExamSection {
+    id: string;
+    examId: string;
+    name: string;
+    description?: string;
+    icon?: string;
+}
+
+export interface PreparationResource {
+    id: string;
+    examId: string;
+    title: string;
+    description?: string;
+    resourceType: 'tip' | 'study_plan' | 'syllabus' | 'pdf' | 'video';
+    url?: string;
+    createdAt: string;
+}
+
 export interface Test {
     id: string;
     title: string;
@@ -29,6 +47,7 @@ export interface Test {
     totalQuestions: number;
     createdAt: string;
     createdBy: string;
+    testType?: 'full_length' | 'sectional' | 'previous_year';
 }
 
 export interface Question {

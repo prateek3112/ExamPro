@@ -89,7 +89,7 @@ const CreateExam = () => {
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., JEE Main 2023"
+                  placeholder="e.g., SSC CGL 2023"
                   required
                 />
               </div>
@@ -101,12 +101,13 @@ const CreateExam = () => {
                     <SelectValue placeholder="Select exam type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="JEE">JEE</SelectItem>
-                    <SelectItem value="NEET">NEET</SelectItem>
-                    <SelectItem value="SSC">SSC</SelectItem>
-                    <SelectItem value="GATE">GATE</SelectItem>
-                    <SelectItem value="CAT">CAT</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="SSC CGL">SSC CGL</SelectItem>
+                    <SelectItem value="SSC CHSL">SSC CHSL</SelectItem>
+                    <SelectItem value="SSC MTS">SSC MTS</SelectItem>
+                    <SelectItem value="SSC JE">SSC JE</SelectItem>
+                    <SelectItem value="SSC GD">SSC GD</SelectItem>
+                    <SelectItem value="SSC CPO">SSC CPO</SelectItem>
+                    <SelectItem value="SSC Stenographer">SSC Stenographer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

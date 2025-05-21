@@ -48,6 +48,38 @@ export type Database = {
           },
         ]
       }
+      exam_sections: {
+        Row: {
+          description: string | null
+          exam_id: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          description?: string | null
+          exam_id?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          description?: string | null
+          exam_id?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_sections_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exams: {
         Row: {
           created_at: string
@@ -77,6 +109,44 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      preparation_resources: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          exam_id: string | null
+          id: string
+          resource_type: string | null
+          title: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          exam_id?: string | null
+          id?: string
+          resource_type?: string | null
+          title: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          exam_id?: string | null
+          id?: string
+          resource_type?: string | null
+          title?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preparation_resources_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       questions: {
         Row: {

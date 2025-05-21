@@ -1,5 +1,6 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { User, Exam, Test, Question, TestAttempt, Answer, QuestionSection } from '../types';
+import { User, Exam, Test, Question, TestAttempt, Answer, QuestionSection, ExamSection, PreparationResource } from '../types';
 
 // Exams API
 export const getExams = async () => {
@@ -15,7 +16,15 @@ export const getExams = async () => {
     }
     
     console.log("Exams retrieved successfully:", data);
-    return data as unknown as Exam[];
+    return data.map(exam => ({
+      id: exam.id,
+      title: exam.title,
+      description: exam.description,
+      createdAt: exam.created_at,
+      createdBy: exam.created_by,
+      imageUrl: exam.image_url,
+      examType: exam.exam_type
+    })) as Exam[];
   } catch (error) {
     console.error("Exception in getExams:", error);
     throw error;
@@ -49,7 +58,15 @@ export const getExam = async (id: string) => {
     }
     
     console.log("Exam retrieved successfully:", data);
-    return data as unknown as Exam;
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      createdAt: data.created_at,
+      createdBy: data.created_by,
+      imageUrl: data.image_url,
+      examType: data.exam_type
+    } as Exam;
   } catch (error) {
     console.error("Exception in getExam:", error);
     throw error;
@@ -81,6 +98,64 @@ export const createExam = async (exam: Omit<Exam, 'id' | 'createdAt' | 'createdB
     examType: data.exam_type,
     imageUrl: data.image_url
   } as Exam;
+};
+
+// New function to get exam sections
+export const getExamSections = async (examId: string) => {
+  try {
+    console.log("Fetching exam sections for exam ID:", examId);
+    const { data, error } = await supabase
+      .from('exam_sections')
+      .select('*')
+      .eq('exam_id', examId);
+    
+    if (error) {
+      console.error("Error fetching exam sections:", error);
+      throw error;
+    }
+    
+    console.log("Exam sections retrieved successfully:", data);
+    return data.map(section => ({
+      id: section.id,
+      examId: section.exam_id,
+      name: section.name,
+      description: section.description,
+      icon: section.icon
+    })) as ExamSection[];
+  } catch (error) {
+    console.error("Exception in getExamSections:", error);
+    throw error;
+  }
+};
+
+// New function to get preparation resources
+export const getPreparationResources = async (examId: string) => {
+  try {
+    console.log("Fetching preparation resources for exam ID:", examId);
+    const { data, error } = await supabase
+      .from('preparation_resources')
+      .select('*')
+      .eq('exam_id', examId);
+    
+    if (error) {
+      console.error("Error fetching preparation resources:", error);
+      throw error;
+    }
+    
+    console.log("Preparation resources retrieved successfully:", data);
+    return data.map(resource => ({
+      id: resource.id,
+      examId: resource.exam_id,
+      title: resource.title,
+      description: resource.description,
+      resourceType: resource.resource_type,
+      url: resource.url,
+      createdAt: resource.created_at
+    })) as PreparationResource[];
+  } catch (error) {
+    console.error("Exception in getPreparationResources:", error);
+    throw error;
+  }
 };
 
 // Tests API
