@@ -173,19 +173,22 @@ const ExamDetail = () => {
     queryKey: ['exam', examId],
     queryFn: () => examId ? getExam(examId) : Promise.reject('No exam ID provided'),
     retry: 1,
-    gcTime: 0,
-    onSuccess: (data) => {
-      console.log('Exam loaded successfully:', data);
-    },
-    onError: (error) => {
-      console.error('Failed to load exam:', error);
+    gcTime: 0
+  });
+
+  // Handle exam loading error with useEffect instead of callbacks
+  useEffect(() => {
+    if (examError) {
+      console.error('Failed to load exam:', examError);
       toast({
         variant: "destructive",
         title: "Error",
         description: "Could not connect to database. Using demo data instead."
       });
+    } else if (exam) {
+      console.log('Exam loaded successfully:', exam);
     }
-  });
+  }, [exam, examError, toast]);
 
   const {
     data: tests,
@@ -196,11 +199,15 @@ const ExamDetail = () => {
     queryFn: () => examId ? getTestsByExam(examId) : Promise.reject('No exam ID provided'),
     enabled: !!examId,
     retry: 1,
-    gcTime: 0,
-    onError: (error) => {
+    gcTime: 0
+  });
+
+  // Log tests error
+  useEffect(() => {
+    if (testsError) {
       console.log('Using mock tests data');
     }
-  });
+  }, [testsError]);
 
   const {
     data: sections,
@@ -211,11 +218,15 @@ const ExamDetail = () => {
     queryFn: () => examId ? getExamSections(examId) : Promise.reject('No exam ID provided'),
     enabled: !!examId,
     retry: 1,
-    gcTime: 0,
-    onError: (error) => {
+    gcTime: 0
+  });
+
+  // Log sections error
+  useEffect(() => {
+    if (sectionsError) {
       console.log('Using mock sections data');
     }
-  });
+  }, [sectionsError]);
 
   const {
     data: resources,
@@ -226,11 +237,15 @@ const ExamDetail = () => {
     queryFn: () => examId ? getPreparationResources(examId) : Promise.reject('No exam ID provided'),
     enabled: !!examId,
     retry: 1,
-    gcTime: 0,
-    onError: (error) => {
+    gcTime: 0
+  });
+
+  // Log resources error
+  useEffect(() => {
+    if (resourcesError) {
       console.log('Using mock resources data');
     }
-  });
+  }, [resourcesError]);
 
   // Use fallback data if needed
   const displayExam = exam || (examId && mockExams[examId]) || null;
