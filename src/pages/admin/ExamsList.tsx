@@ -1,30 +1,21 @@
 
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getExamsApi } from '@/services/api';
+import { getExams } from '@/services/supabaseApi';
 import { Exam } from '@/types';
 import { Button } from '@/components/ui/button';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from '@tanstack/react-query';
 
 const ExamsList = () => {
-  const [exams, setExams] = useState<Exam[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: exams, isLoading, error } = useQuery({
+    queryKey: ['exams'],
+    queryFn: getExams
+  });
 
-  useEffect(() => {
-    const loadExams = async () => {
-      try {
-        const data = await getExamsApi();
-        setExams(data);
-      } catch (error) {
-        console.error('Failed to load exams:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadExams();
-  }, []);
+  if (error) {
+    console.error('Failed to load exams:', error);
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -45,7 +36,7 @@ const ExamsList = () => {
 
         {isLoading ? (
           <div className="text-center py-8">Loading exams...</div>
-        ) : exams.length === 0 ? (
+        ) : exams?.length === 0 ? (
           <Card className="text-center">
             <CardContent className="py-8">
               <p className="text-gray-500 mb-4">No exams have been created yet.</p>
@@ -56,7 +47,7 @@ const ExamsList = () => {
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {exams.map((exam) => (
+            {exams?.map((exam) => (
               <Card key={exam.id} className="overflow-hidden hover:shadow-md transition-shadow">
                 {exam.imageUrl && (
                   <div 

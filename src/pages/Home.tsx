@@ -1,32 +1,25 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getExamsApi } from '@/services/api';
+import { getExams } from '@/services/supabaseApi';
 import { Exam } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/layouts/MainLayout';
+import { useQuery } from '@tanstack/react-query';
 
 const Home = () => {
-  const [exams, setExams] = useState<Exam[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, user } = useAuth();
+  
+  const { data: exams, isLoading, error } = useQuery({
+    queryKey: ['exams'],
+    queryFn: getExams
+  });
 
-  useEffect(() => {
-    const loadExams = async () => {
-      try {
-        const data = await getExamsApi();
-        setExams(data);
-      } catch (error) {
-        console.error('Failed to load exams:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadExams();
-  }, []);
+  if (error) {
+    console.error('Failed to load exams:', error);
+  }
 
   return (
     <MainLayout>
@@ -46,7 +39,7 @@ const Home = () => {
                 <div className="text-center p-8">Loading exams...</div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {exams.map((exam) => (
+                  {exams?.map((exam) => (
                     <Card key={exam.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                       {exam.imageUrl && (
                         <div 

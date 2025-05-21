@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createExamApi } from '@/services/api';
+import { createExam } from '@/services/supabaseApi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,7 @@ const CreateExam = () => {
         throw new Error('User not authenticated');
       }
       
-      await createExamApi({ 
+      await createExam({ 
         title, 
         description, 
         imageUrl: imageUrl || undefined 
