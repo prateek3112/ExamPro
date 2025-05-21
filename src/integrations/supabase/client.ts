@@ -23,7 +23,7 @@ export const supabase = createClient<Database>(
         'x-application-name': 'learn-stride-online',
       },
     },
-    // Connection settings to improve reliability
+    // Enhanced connection settings to improve reliability
     realtime: {
       params: {
         eventsPerSecond: 10,
@@ -32,5 +32,16 @@ export const supabase = createClient<Database>(
     db: {
       schema: 'public',
     },
+    // Added more resilient network settings
+    network: {
+      fetchOptions: {
+        cache: 'no-cache',
+        mode: 'cors',
+      },
+      retry: {
+        count: 3,
+        delay: 1000,
+      },
+    }
   }
 );

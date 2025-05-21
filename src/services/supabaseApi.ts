@@ -1,6 +1,19 @@
 import { supabase } from "@/integrations/supabase/client";
 import { User, Exam, Test, Question, TestAttempt, Answer, QuestionSection, ExamSection, PreparationResource } from '../types';
 
+// Helper function to handle API errors consistently
+const handleApiError = (error: any, operation: string, details: string = '') => {
+  console.error(`Error ${operation}:`, error);
+  
+  // Create a more informative error message
+  const message = `Failed to ${operation}: ${error.message || 'Database connection issue'}`;
+  if (details) {
+    console.error(details);
+  }
+  
+  throw new Error(message);
+};
+
 // Exams API
 export const getExams = async () => {
   try {
@@ -10,8 +23,7 @@ export const getExams = async () => {
       .select('*');
     
     if (error) {
-      console.error("Error fetching exams:", error);
-      throw new Error(`Failed to fetch exams: ${error.message}`);
+      handleApiError(error, "fetch exams");
     }
     
     if (!data || data.length === 0) {
@@ -52,8 +64,7 @@ export const getExam = async (id: string) => {
       .single();
     
     if (error) {
-      console.error("Error fetching exam:", error);
-      throw new Error(`Failed to fetch exam: ${error.message}`);
+      handleApiError(error, "fetch exam", `ID: ${id}`);
     }
     
     if (!data) {

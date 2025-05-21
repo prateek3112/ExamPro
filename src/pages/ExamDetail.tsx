@@ -10,8 +10,7 @@ import MainLayout from '@/components/layouts/MainLayout';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Book, Puzzle, FileQuestion, Clock, BookOpen } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { FileText, Book, Puzzle, FileQuestion, Clock, BookOpen, RefreshCw } from 'lucide-react';
 
 // Resource type to icon mapping
 const resourceTypeIcons: Record<string, any> = {
@@ -48,39 +47,53 @@ const ExamDetail = () => {
   
   // Error states
   const [examError, setExamError] = useState<Error | null>(null);
+  const [connectionError, setConnectionError] = useState(false);
 
-  // Fetch exam data
-  useEffect(() => {
+  // Function to retry loading data after connection failure
+  const retryLoading = () => {
+    setExamError(null);
+    setConnectionError(false);
+    setIsExamLoading(true);
+    setIsTestsLoading(true);
+    setSectionsLoading(true);
+    setIsResourcesLoading(true);
+    loadExamData();
+  };
+
+  // Consolidated function to load exam data
+  const loadExamData = () => {
     if (!examId) return;
     
-    setIsExamLoading(true);
-    setExamError(null);
-    
+    // Load exam details
     getExam(examId)
       .then((data) => {
         console.log('Exam loaded successfully:', data);
         setExam(data);
+        setConnectionError(false);
       })
       .catch((error) => {
         console.error('Failed to load exam:', error);
         setExamError(error as Error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not connect to database. Please try again later."
-        });
+        if (error.message.includes('Failed to fetch')) {
+          setConnectionError(true);
+          toast({
+            variant: "destructive",
+            title: "Connection Error",
+            description: "Could not connect to database. Please check your internet connection and try again."
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: error.message || "Could not load exam data. Please try again later."
+          });
+        }
       })
       .finally(() => {
         setIsExamLoading(false);
       });
-  }, [examId, toast]);
-
-  // Fetch tests data
-  useEffect(() => {
-    if (!examId) return;
     
-    setIsTestsLoading(true);
-    
+    // Load tests for this exam
     getTestsByExam(examId)
       .then((data) => {
         console.log('Tests loaded successfully:', data);
@@ -97,14 +110,8 @@ const ExamDetail = () => {
       .finally(() => {
         setIsTestsLoading(false);
       });
-  }, [examId, toast]);
-
-  // Fetch sections data
-  useEffect(() => {
-    if (!examId) return;
     
-    setIsSectionsLoading(true);
-    
+    // Load sections for this exam
     getExamSections(examId)
       .then((data) => {
         console.log('Sections loaded successfully:', data);
@@ -121,14 +128,8 @@ const ExamDetail = () => {
       .finally(() => {
         setIsSectionsLoading(false);
       });
-  }, [examId, toast]);
-
-  // Fetch resources data
-  useEffect(() => {
-    if (!examId) return;
     
-    setIsResourcesLoading(true);
-    
+    // Load preparation resources
     getPreparationResources(examId)
       .then((data) => {
         console.log('Resources loaded successfully:', data);
@@ -145,6 +146,11 @@ const ExamDetail = () => {
       .finally(() => {
         setIsResourcesLoading(false);
       });
+  };
+
+  // Initial data loading
+  useEffect(() => {
+    loadExamData();
   }, [examId, toast]);
 
   // Filter tests by type
@@ -165,6 +171,30 @@ const ExamDetail = () => {
                 <Skeleton key={i} className="h-48 w-full" />
               ))}
             </div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (connectionError) {
+    return (
+      <MainLayout>
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">
+            Connection Error
+          </h2>
+          <p className="mb-6">
+            Could not connect to the database. Please check your internet connection and try again.
+          </p>
+          <div className="flex flex-col gap-4 items-center">
+            <Button onClick={retryLoading} className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Retry Connection
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/">&larr; Back to exams</Link>
+            </Button>
           </div>
         </div>
       </MainLayout>
