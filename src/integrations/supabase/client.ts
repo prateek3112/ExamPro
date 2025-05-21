@@ -23,10 +23,14 @@ export const supabase = createClient<Database>(
         'x-application-name': 'learn-stride-online',
       },
     },
-    // Add better timeout and retry settings
+    // Connection settings to improve reliability
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
     db: {
       schema: 'public',
     },
   }
 );
-

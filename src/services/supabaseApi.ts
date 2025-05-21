@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User, Exam, Test, Question, TestAttempt, Answer, QuestionSection, ExamSection, PreparationResource } from '../types';
 
@@ -12,18 +11,23 @@ export const getExams = async () => {
     
     if (error) {
       console.error("Error fetching exams:", error);
-      throw error;
+      throw new Error(`Failed to fetch exams: ${error.message}`);
+    }
+    
+    if (!data || data.length === 0) {
+      console.log("No exams found");
+      return [];
     }
     
     console.log("Exams retrieved successfully:", data);
     return data.map(exam => ({
       id: exam.id,
       title: exam.title,
-      description: exam.description,
+      description: exam.description || '',
       createdAt: exam.created_at,
-      createdBy: exam.created_by,
+      createdBy: exam.created_by || '',
       imageUrl: exam.image_url,
-      examType: exam.exam_type
+      examType: exam.exam_type || ''
     })) as Exam[];
   } catch (error) {
     console.error("Exception in getExams:", error);
@@ -49,7 +53,7 @@ export const getExam = async (id: string) => {
     
     if (error) {
       console.error("Error fetching exam:", error);
-      throw error;
+      throw new Error(`Failed to fetch exam: ${error.message}`);
     }
     
     if (!data) {
@@ -61,11 +65,11 @@ export const getExam = async (id: string) => {
     return {
       id: data.id,
       title: data.title,
-      description: data.description,
+      description: data.description || '',
       createdAt: data.created_at,
-      createdBy: data.created_by,
+      createdBy: data.created_by || '',
       imageUrl: data.image_url,
-      examType: data.exam_type
+      examType: data.exam_type || ''
     } as Exam;
   } catch (error) {
     console.error("Exception in getExam:", error);
@@ -74,30 +78,38 @@ export const getExam = async (id: string) => {
 };
 
 export const createExam = async (exam: Omit<Exam, 'id' | 'createdAt' | 'createdBy'>, userId: string) => {
-  const { data, error } = await supabase
-    .from('exams')
-    .insert({
-      title: exam.title,
-      description: exam.description,
-      exam_type: exam.examType,
-      image_url: exam.imageUrl,
-      created_by: userId
-    })
-    .select()
-    .single();
-  
-  if (error) throw error;
-  
-  // Map from snake_case to camelCase
-  return {
-    id: data.id,
-    title: data.title,
-    description: data.description,
-    createdAt: data.created_at,
-    createdBy: data.created_by,
-    examType: data.exam_type,
-    imageUrl: data.image_url
-  } as Exam;
+  try {
+    const { data, error } = await supabase
+      .from('exams')
+      .insert({
+        title: exam.title,
+        description: exam.description,
+        exam_type: exam.examType,
+        image_url: exam.imageUrl,
+        created_by: userId
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating exam:", error);
+      throw new Error(`Failed to create exam: ${error.message}`);
+    }
+    
+    // Map from snake_case to camelCase
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description || '',
+      createdAt: data.created_at,
+      createdBy: data.created_by || '',
+      examType: data.exam_type || '',
+      imageUrl: data.image_url
+    } as Exam;
+  } catch (error) {
+    console.error("Exception in createExam:", error);
+    throw error;
+  }
 };
 
 // New function to get exam sections
@@ -111,16 +123,21 @@ export const getExamSections = async (examId: string) => {
     
     if (error) {
       console.error("Error fetching exam sections:", error);
-      throw error;
+      throw new Error(`Failed to fetch exam sections: ${error.message}`);
+    }
+    
+    if (!data || data.length === 0) {
+      console.log("No sections found for exam ID:", examId);
+      return [];
     }
     
     console.log("Exam sections retrieved successfully:", data);
     return data.map(section => ({
       id: section.id,
-      examId: section.exam_id,
+      examId: section.exam_id || '',
       name: section.name,
-      description: section.description,
-      icon: section.icon
+      description: section.description || '',
+      icon: section.icon || ''
     })) as ExamSection[];
   } catch (error) {
     console.error("Exception in getExamSections:", error);
@@ -139,18 +156,23 @@ export const getPreparationResources = async (examId: string) => {
     
     if (error) {
       console.error("Error fetching preparation resources:", error);
-      throw error;
+      throw new Error(`Failed to fetch preparation resources: ${error.message}`);
+    }
+    
+    if (!data || data.length === 0) {
+      console.log("No resources found for exam ID:", examId);
+      return [];
     }
     
     console.log("Preparation resources retrieved successfully:", data);
     return data.map(resource => ({
       id: resource.id,
-      examId: resource.exam_id,
+      examId: resource.exam_id || '',
       title: resource.title,
-      description: resource.description,
-      resourceType: resource.resource_type,
-      url: resource.url,
-      createdAt: resource.created_at
+      description: resource.description || '',
+      resourceType: resource.resource_type as 'tip' | 'study_plan' | 'syllabus' | 'pdf' | 'video',
+      url: resource.url || '',
+      createdAt: resource.created_at || new Date().toISOString()
     })) as PreparationResource[];
   } catch (error) {
     console.error("Exception in getPreparationResources:", error);
@@ -160,24 +182,39 @@ export const getPreparationResources = async (examId: string) => {
 
 // Tests API
 export const getTestsByExam = async (examId: string) => {
-  const { data, error } = await supabase
-    .from('tests')
-    .select('*')
-    .eq('exam_id', examId);
-  
-  if (error) throw error;
-  
-  // Map from snake_case to camelCase
-  return data.map(test => ({
-    id: test.id,
-    title: test.title,
-    description: test.description,
-    examId: test.exam_id,
-    duration: test.duration,
-    totalQuestions: test.total_questions,
-    createdAt: test.created_at,
-    createdBy: test.created_by
-  })) as Test[];
+  try {
+    console.log("Fetching tests for exam ID:", examId);
+    const { data, error } = await supabase
+      .from('tests')
+      .select('*')
+      .eq('exam_id', examId);
+    
+    if (error) {
+      console.error("Error fetching tests:", error);
+      throw new Error(`Failed to fetch tests: ${error.message}`);
+    }
+    
+    if (!data || data.length === 0) {
+      console.log("No tests found for exam ID:", examId);
+      return [];
+    }
+    
+    console.log("Tests retrieved successfully:", data);
+    // Map from snake_case to camelCase
+    return data.map(test => ({
+      id: test.id,
+      title: test.title,
+      description: test.description || '',
+      examId: test.exam_id,
+      duration: test.duration,
+      totalQuestions: test.total_questions,
+      createdAt: test.created_at,
+      createdBy: test.created_by || ''
+    })) as Test[];
+  } catch (error) {
+    console.error("Exception in getTestsByExam:", error);
+    throw error;
+  }
 };
 
 export const getTest = async (id: string) => {
@@ -193,12 +230,12 @@ export const getTest = async (id: string) => {
   return {
     id: data.id,
     title: data.title,
-    description: data.description,
+    description: data.description || '',
     examId: data.exam_id,
     duration: data.duration,
     totalQuestions: data.total_questions,
     createdAt: data.created_at,
-    createdBy: data.created_by
+    createdBy: data.created_by || ''
   } as Test;
 };
 
@@ -222,12 +259,12 @@ export const createTest = async (test: Omit<Test, 'id' | 'createdAt' | 'createdB
   return {
     id: data.id,
     title: data.title,
-    description: data.description,
+    description: data.description || '',
     examId: data.exam_id,
     duration: data.duration,
     totalQuestions: data.total_questions,
     createdAt: data.created_at,
-    createdBy: data.created_by
+    createdBy: data.created_by || ''
   } as Test;
 };
 
