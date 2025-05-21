@@ -173,15 +173,17 @@ const ExamDetail = () => {
     queryKey: ['exam', examId],
     queryFn: () => examId ? getExam(examId) : Promise.reject('No exam ID provided'),
     retry: 1,
-    onSettled: (data, error) => {
-      if (error) {
-        console.error('Failed to load exam:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not connect to database. Using demo data instead."
-        });
-      }
+    gcTime: 0,
+    onSuccess: (data) => {
+      console.log('Exam loaded successfully:', data);
+    },
+    onError: (error) => {
+      console.error('Failed to load exam:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not connect to database. Using demo data instead."
+      });
     }
   });
 
@@ -194,10 +196,9 @@ const ExamDetail = () => {
     queryFn: () => examId ? getTestsByExam(examId) : Promise.reject('No exam ID provided'),
     enabled: !!examId,
     retry: 1,
-    onSettled: (data, error) => {
-      if (error) {
-        console.log('Using mock tests data');
-      }
+    gcTime: 0,
+    onError: (error) => {
+      console.log('Using mock tests data');
     }
   });
 
@@ -210,10 +211,9 @@ const ExamDetail = () => {
     queryFn: () => examId ? getExamSections(examId) : Promise.reject('No exam ID provided'),
     enabled: !!examId,
     retry: 1,
-    onSettled: (data, error) => {
-      if (error) {
-        console.log('Using mock sections data');
-      }
+    gcTime: 0,
+    onError: (error) => {
+      console.log('Using mock sections data');
     }
   });
 
@@ -226,10 +226,9 @@ const ExamDetail = () => {
     queryFn: () => examId ? getPreparationResources(examId) : Promise.reject('No exam ID provided'),
     enabled: !!examId,
     retry: 1,
-    onSettled: (data, error) => {
-      if (error) {
-        console.log('Using mock resources data');
-      }
+    gcTime: 0,
+    onError: (error) => {
+      console.log('Using mock resources data');
     }
   });
 
