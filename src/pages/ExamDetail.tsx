@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getExam, getTestsByExam, getExamSections, getPreparationResources } from '@/services/supabaseApi';
@@ -173,15 +172,17 @@ const ExamDetail = () => {
   } = useQuery({
     queryKey: ['exam', examId],
     queryFn: () => examId ? getExam(examId) : Promise.reject('No exam ID provided'),
-    onError: (error) => {
-      console.error('Failed to load exam:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not connect to database. Using demo data instead."
-      });
-    },
-    retry: 1
+    retry: 1,
+    onSettled: (data, error) => {
+      if (error) {
+        console.error('Failed to load exam:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not connect to database. Using demo data instead."
+        });
+      }
+    }
   });
 
   const {
@@ -192,10 +193,12 @@ const ExamDetail = () => {
     queryKey: ['tests', examId],
     queryFn: () => examId ? getTestsByExam(examId) : Promise.reject('No exam ID provided'),
     enabled: !!examId,
-    onError: () => {
-      console.log('Using mock tests data');
-    },
-    retry: 1
+    retry: 1,
+    onSettled: (data, error) => {
+      if (error) {
+        console.log('Using mock tests data');
+      }
+    }
   });
 
   const {
@@ -206,10 +209,12 @@ const ExamDetail = () => {
     queryKey: ['sections', examId],
     queryFn: () => examId ? getExamSections(examId) : Promise.reject('No exam ID provided'),
     enabled: !!examId,
-    onError: () => {
-      console.log('Using mock sections data');
-    },
-    retry: 1
+    retry: 1,
+    onSettled: (data, error) => {
+      if (error) {
+        console.log('Using mock sections data');
+      }
+    }
   });
 
   const {
@@ -220,10 +225,12 @@ const ExamDetail = () => {
     queryKey: ['resources', examId],
     queryFn: () => examId ? getPreparationResources(examId) : Promise.reject('No exam ID provided'),
     enabled: !!examId,
-    onError: () => {
-      console.log('Using mock resources data');
-    },
-    retry: 1
+    retry: 1,
+    onSettled: (data, error) => {
+      if (error) {
+        console.log('Using mock resources data');
+      }
+    }
   });
 
   // Use fallback data if needed
