@@ -1,17 +1,19 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getExamApi, getTestsByExamApi } from '@/services/api';
+import { getExam, getTestsByExam } from '@/services/supabaseApi';
 import { Exam, Test } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import MainLayout from '@/components/layouts/MainLayout';
+import { useToast } from '@/components/ui/use-toast';
 
 const ExamDetail = () => {
   const { examId } = useParams<{ examId: string }>();
   const [exam, setExam] = useState<Exam | null>(null);
   const [tests, setTests] = useState<Test[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadExamData = async () => {
@@ -19,20 +21,29 @@ const ExamDetail = () => {
       
       try {
         setIsLoading(true);
-        const examData = await getExamApi(examId);
-        const testsData = await getTestsByExamApi(examId);
+        console.log("Fetching exam with ID:", examId);
+        const examData = await getExam(examId);
+        console.log("Exam data retrieved:", examData);
+        
+        const testsData = await getTestsByExam(examId);
+        console.log("Tests data retrieved:", testsData);
         
         setExam(examData);
         setTests(testsData);
       } catch (error) {
         console.error('Failed to load exam data:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load exam details. Please try again later."
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     loadExamData();
-  }, [examId]);
+  }, [examId, toast]);
 
   if (isLoading) {
     return (
