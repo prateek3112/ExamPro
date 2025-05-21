@@ -1,5 +1,5 @@
 
-import { Exam, Question, QuestionSection, Test } from '@/types';
+import { Exam, Question, QuestionSection, Test, TestAttempt, User, Answer } from '@/types';
 
 // Mock data for tests
 const mockTests: Record<string, Test> = {
@@ -130,7 +130,232 @@ const mockQuestions: Record<string, Question[]> = {
   }))
 };
 
+// Mock test attempts
+const mockTestAttempts: Record<string, TestAttempt> = {
+  'attempt-001': {
+    id: 'attempt-001',
+    testId: 't-00001',
+    userId: 'user123',
+    startedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000).toISOString(),
+    score: 16,
+    totalQuestions: 20,
+    answers: Array.from({ length: 20 }, (_, i) => ({
+      questionId: `q-00001-${i+1}`,
+      selectedOption: Math.floor(Math.random() * 4),
+      isCorrect: Math.random() > 0.2,
+    }))
+  },
+  'attempt-002': {
+    id: 'attempt-002',
+    testId: 't-00002',
+    userId: 'user123',
+    startedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 40 * 60 * 1000).toISOString(),
+    score: 10,
+    totalQuestions: 15,
+    answers: Array.from({ length: 15 }, (_, i) => ({
+      questionId: `q-00002-${i+1}`,
+      selectedOption: Math.floor(Math.random() * 4),
+      isCorrect: Math.random() > 0.3,
+    }))
+  },
+  'attempt-003': {
+    id: 'attempt-003',
+    testId: 't-00003',
+    userId: 'user123',
+    startedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    completedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 + 50 * 60 * 1000).toISOString(),
+    score: 22,
+    totalQuestions: 25,
+    answers: Array.from({ length: 25 }, (_, i) => ({
+      questionId: `q-00003-${i+1}`,
+      selectedOption: Math.floor(Math.random() * 4),
+      isCorrect: Math.random() > 0.15,
+    }))
+  }
+};
+
+// Mock authentication functions
+export const loginApi = async (email: string, password: string) => {
+  console.log('Mock login with:', email);
+  
+  // Simulate authentication check
+  if (email.includes('error')) {
+    throw new Error('Invalid email or password');
+  }
+  
+  if (password.length < 6) {
+    throw new Error('Password must be at least 6 characters');
+  }
+  
+  // Return mock user data
+  return {
+    user: {
+      id: 'user123',
+      name: email.split('@')[0],
+      email,
+    },
+    token: 'mock-auth-token-123',
+  };
+};
+
+export const registerApi = async (name: string, email: string, password: string) => {
+  console.log('Mock register with:', name, email);
+  
+  // Simulate validation
+  if (email.includes('exists')) {
+    throw new Error('User with this email already exists');
+  }
+  
+  if (password.length < 6) {
+    throw new Error('Password must be at least 6 characters');
+  }
+  
+  // Return mock user data
+  return {
+    user: {
+      id: 'user123',
+      name,
+      email,
+    },
+    token: 'mock-auth-token-123',
+  };
+};
+
+// Test attempts API functions
+export const getTestAttemptsApi = async (userId: string) => {
+  console.log('Fetching test attempts for user:', userId);
+  
+  // Return mock attempts for the user
+  return Object.values(mockTestAttempts).filter(attempt => attempt.userId === userId);
+};
+
+export const getTestAttemptApi = async (attemptId: string) => {
+  console.log('Fetching test attempt with ID:', attemptId);
+  
+  // Check if attempt exists in mock data
+  const attempt = mockTestAttempts[attemptId];
+  
+  if (!attempt) {
+    throw new Error('Test attempt not found');
+  }
+  
+  // Get associated test and exam data
+  const test = mockTests[attempt.testId];
+  
+  if (!test) {
+    throw new Error('Test not found for this attempt');
+  }
+  
+  const exam = mockExams[test.examId];
+  
+  if (!exam) {
+    throw new Error('Exam not found for this attempt');
+  }
+  
+  // Get questions for the test
+  const questions = mockQuestions[attempt.testId] || [];
+  
+  return {
+    attempt,
+    test,
+    exam,
+    questions,
+  };
+};
+
+export const startTestAttemptApi = async (testId: string, userId: string, selectedSections?: string[]) => {
+  console.log('Starting test attempt:', testId, 'for user:', userId);
+  console.log('Selected sections:', selectedSections);
+
+  // Check if test exists
+  const test = await getTestApi(testId);
+  
+  // Get questions for the test
+  const questions = await getQuestionsByTestApi(testId);
+  
+  // Filter questions by section if selected
+  const filteredQuestions = selectedSections?.length
+    ? questions.filter(q => selectedSections.includes(q.sectionId || ''))
+    : questions;
+  
+  // Create sections from question data
+  const sectionMap = new Map<string, QuestionSection>();
+  
+  filteredQuestions.forEach(q => {
+    if (q.sectionId && !sectionMap.has(q.sectionId)) {
+      sectionMap.set(q.sectionId, {
+        id: q.sectionId,
+        title: `Section ${sectionMap.size + 1}`,
+        description: `Questions for section ${sectionMap.size + 1}`,
+        questionCount: 0
+      });
+    }
+    
+    if (q.sectionId) {
+      const section = sectionMap.get(q.sectionId);
+      if (section) {
+        sectionMap.set(q.sectionId, {
+          ...section,
+          questionCount: section.questionCount + 1
+        });
+      }
+    }
+  });
+  
+  // Create a new attempt
+  const attempt: TestAttempt = {
+    id: `attempt-${Date.now()}`,
+    testId,
+    userId,
+    startedAt: new Date().toISOString(),
+    completedAt: null,
+    score: 0,
+    totalQuestions: filteredQuestions.length,
+    answers: [],
+    selectedSections: selectedSections || []
+  };
+  
+  return {
+    attempt,
+    questions: filteredQuestions,
+    sections: Array.from(sectionMap.values()),
+    test
+  };
+};
+
+export const submitTestAttemptApi = async (attemptId: string, answers: Answer[]) => {
+  console.log('Submitting test attempt:', attemptId, 'with answers:', answers.length);
+  
+  // Calculate the score
+  const correctAnswers = answers.filter(a => a.isCorrect).length;
+  
+  // Create updated attempt
+  const updatedAttempt: TestAttempt = {
+    id: attemptId,
+    testId: mockTestAttempts[attemptId]?.testId || 't-00001', // Fallback to default
+    userId: mockTestAttempts[attemptId]?.userId || 'user123',
+    startedAt: mockTestAttempts[attemptId]?.startedAt || new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    completedAt: new Date().toISOString(),
+    score: correctAnswers,
+    totalQuestions: answers.length,
+    answers,
+  };
+  
+  // In a real app this would save to the database
+  // For mock data, we can just log it
+  console.log('Test submission complete. Score:', correctAnswers, '/', answers.length);
+  
+  return updatedAttempt;
+};
+
 // API functions
+export const getExamsApi = async () => {
+  console.log('Fetching all exams');
+  return Object.values(mockExams);
+};
+
 export const getTestApi = async (testId: string): Promise<Test> => {
   console.log('Fetching test with ID:', testId);
 

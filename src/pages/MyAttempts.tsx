@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getTestAttemptsApi, getExamsApi, getTestApi } from '@/services/api';
@@ -109,6 +108,7 @@ const MyAttempts = () => {
             </CardContent>
           </Card>
         ) : (
+          // ... keep existing code (performance stats and attempts display)
           <>
             {/* Performance stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
