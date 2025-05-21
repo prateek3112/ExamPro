@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getExam, getTestsByExam, getExamSections, getPreparationResources } from '@/services/supabaseApi';
@@ -10,7 +9,7 @@ import MainLayout from '@/components/layouts/MainLayout';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Book, Puzzle, FileQuestion, Clock, BookOpen, RefreshCw } from 'lucide-react';
+import { FileText, Book, Puzzle, FileQuestion, Clock, BookOpen, RefreshCw, AlertCircle } from 'lucide-react';
 
 // Resource type to icon mapping
 const resourceTypeIcons: Record<string, any> = {
@@ -48,6 +47,8 @@ const ExamDetail = () => {
   // Error states
   const [examError, setExamError] = useState<Error | null>(null);
   const [connectionError, setConnectionError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
 
   // Function to retry loading data after connection failure
   const retryLoading = () => {
@@ -57,12 +58,22 @@ const ExamDetail = () => {
     setIsTestsLoading(true);
     setIsSectionsLoading(true);
     setIsResourcesLoading(true);
+    setRetryCount(prev => prev + 1);
     loadExamData();
+    
+    toast({
+      title: "Retrying connection",
+      description: "Attempting to reconnect to the database...",
+    });
   };
 
   // Consolidated function to load exam data
   const loadExamData = () => {
-    if (!examId) return;
+    if (!examId) {
+      setIsExamLoading(false);
+      setExamError(new Error("No exam ID provided"));
+      return;
+    }
     
     // Load exam details
     getExam(examId)
@@ -74,12 +85,12 @@ const ExamDetail = () => {
       .catch((error) => {
         console.error('Failed to load exam:', error);
         setExamError(error as Error);
-        if (error.message.includes('Failed to fetch')) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('connection') || error.message.includes('network')) {
           setConnectionError(true);
           toast({
             variant: "destructive",
             title: "Connection Error",
-            description: "Could not connect to database. Please check your internet connection and try again."
+            description: "Could not connect to database. Please check your internet connection and try again.",
           });
         } else {
           toast({
@@ -181,21 +192,36 @@ const ExamDetail = () => {
     return (
       <MainLayout>
         <div className="text-center p-8">
+          <div className="mx-auto w-16 h-16 mb-4 text-red-500">
+            <AlertCircle className="w-16 h-16" />
+          </div>
           <h2 className="text-2xl font-bold text-red-600 mb-4">
             Connection Error
           </h2>
-          <p className="mb-6">
-            Could not connect to the database. Please check your internet connection and try again.
+          <p className="mb-6 max-w-lg mx-auto">
+            Could not connect to the database. This may be due to internet connectivity issues or the server being temporarily unavailable.
           </p>
           <div className="flex flex-col gap-4 items-center">
-            <Button onClick={retryLoading} className="flex items-center gap-2">
+            <Button 
+              onClick={retryLoading} 
+              className="flex items-center gap-2"
+              disabled={retryCount >= maxRetries && isExamLoading}
+            >
               <RefreshCw className="h-4 w-4" />
-              Retry Connection
+              {retryCount >= maxRetries && isExamLoading ? 'Retrying...' : 'Retry Connection'}
             </Button>
             <Button variant="outline" asChild>
               <Link to="/">&larr; Back to exams</Link>
             </Button>
           </div>
+          {retryCount >= maxRetries && (
+            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-700">
+              <p className="text-sm">
+                <strong>Still having issues?</strong> If problems persist after several retries, please try again later
+                or contact support if the issue continues.
+              </p>
+            </div>
+          )}
         </div>
       </MainLayout>
     );

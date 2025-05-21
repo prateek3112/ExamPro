@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User, Exam, Test, Question, TestAttempt, Answer, QuestionSection, ExamSection, PreparationResource } from '../types';
 
@@ -61,7 +62,7 @@ export const getExam = async (id: string) => {
       .from('exams')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     
     if (error) {
       handleApiError(error, "fetch exam", `ID: ${id}`);
@@ -103,11 +104,15 @@ export const createExam = async (exam: Omit<Exam, 'id' | 'createdAt' | 'createdB
       .from('exams')
       .insert(examData)
       .select()
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error("Error creating exam:", error);
       throw new Error(`Failed to create exam: ${error.message}`);
+    }
+    
+    if (!data) {
+      throw new Error('Failed to create exam: No data returned');
     }
     
     // Map from snake_case to camelCase
@@ -130,10 +135,17 @@ export const createExam = async (exam: Omit<Exam, 'id' | 'createdAt' | 'createdB
 export const getExamSections = async (examId: string) => {
   try {
     console.log("Fetching exam sections for exam ID:", examId);
+    
+    // Validate ID format
+    if (!examId || examId === "undefined" || examId === "null") {
+      console.error("Invalid exam ID:", examId);
+      throw new Error(`Invalid exam ID for sections: ${examId}`);
+    }
+    
     const { data, error } = await supabase
       .from('exam_sections')
       .select('*')
-      .eq('exam_id', examId);
+      .eq('exam_id', examId as string);
     
     if (error) {
       console.error("Error fetching exam sections:", error);
@@ -163,10 +175,17 @@ export const getExamSections = async (examId: string) => {
 export const getPreparationResources = async (examId: string) => {
   try {
     console.log("Fetching preparation resources for exam ID:", examId);
+    
+    // Validate ID format
+    if (!examId || examId === "undefined" || examId === "null") {
+      console.error("Invalid exam ID for resources:", examId);
+      throw new Error(`Invalid exam ID for resources: ${examId}`);
+    }
+    
     const { data, error } = await supabase
       .from('preparation_resources')
       .select('*')
-      .eq('exam_id', examId);
+      .eq('exam_id', examId as string);
     
     if (error) {
       console.error("Error fetching preparation resources:", error);
@@ -198,10 +217,17 @@ export const getPreparationResources = async (examId: string) => {
 export const getTestsByExam = async (examId: string) => {
   try {
     console.log("Fetching tests for exam ID:", examId);
+    
+    // Validate ID format
+    if (!examId || examId === "undefined" || examId === "null") {
+      console.error("Invalid exam ID for tests:", examId);
+      throw new Error(`Invalid exam ID for tests: ${examId}`);
+    }
+    
     const { data, error } = await supabase
       .from('tests')
       .select('*')
-      .eq('exam_id', examId);
+      .eq('exam_id', examId as string);
     
     if (error) {
       console.error("Error fetching tests:", error);

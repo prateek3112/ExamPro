@@ -22,6 +22,7 @@ export const supabase = createClient<Database>(
       headers: {
         'x-application-name': 'learn-stride-online',
       },
+      fetch: customFetch,
     },
     // Enhanced connection settings to improve reliability
     realtime: {
@@ -34,3 +35,40 @@ export const supabase = createClient<Database>(
     },
   }
 );
+
+// Custom fetch implementation with retries
+async function customFetch(url: RequestInfo, options?: RequestInit): Promise<Response> {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 1000; // 1 second
+  
+  let retries = 0;
+  let lastError: Error;
+  
+  while (retries < MAX_RETRIES) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        cache: 'no-cache',
+        mode: 'cors',
+      });
+      
+      if (response.ok) {
+        return response;
+      }
+      
+      // If response is not ok, wait and retry
+      console.log(`Fetch failed with status ${response.status}, retrying...`);
+      lastError = new Error(`HTTP error ${response.status}`);
+    } catch (error) {
+      console.error(`Fetch error (attempt ${retries + 1}/${MAX_RETRIES}):`, error);
+      lastError = error as Error;
+    }
+    
+    // Wait before retry
+    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retries + 1)));
+    retries++;
+  }
+  
+  // All retries failed
+  throw lastError || new Error('Failed to fetch after multiple retries');
+}
