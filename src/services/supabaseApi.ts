@@ -350,9 +350,14 @@ export const getTestAttempt = async (attemptId: string) => {
   // Get all questions for the test
   const questions = await getQuestionsByTest(test.id);
   
+  // Fix: Proper type checking for selected_sections
+  const selectedSectionsArray = Array.isArray(attemptData.selected_sections) 
+    ? attemptData.selected_sections as string[]
+    : [];
+  
   // Filter questions by selected sections if applicable
-  const filteredQuestions = attemptData.selected_sections && attemptData.selected_sections.length > 0
-    ? questions.filter(q => q.sectionId && attemptData.selected_sections.includes(q.sectionId))
+  const filteredQuestions = selectedSectionsArray.length > 0
+    ? questions.filter(q => q.sectionId && selectedSectionsArray.includes(q.sectionId))
     : questions;
   
   // Map answers to our client-side types
@@ -372,7 +377,7 @@ export const getTestAttempt = async (attemptId: string) => {
     score: attemptData.score,
     totalQuestions: attemptData.total_questions,
     answers,
-    selectedSections: attemptData.selected_sections as string[] | undefined
+    selectedSections: selectedSectionsArray
   };
   
   return {
